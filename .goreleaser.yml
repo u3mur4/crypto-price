@@ -21,7 +21,7 @@ archive:
     amd64: x86_64
 
 sign:
-  artifacts: all
+  artifacts: checksum
   args: ["-u", "BA82 F255 79A8 8012 C317  202F 1444 7AF3 CE37 622B", "--output", "${signature}", "--detach-sign", "${artifact}"]
 
 checksum:
