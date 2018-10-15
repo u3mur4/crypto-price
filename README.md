@@ -2,13 +2,24 @@
 
 ![Price Tracker](price.gif)
 
-Realtime pricetracking.
+```
+$ crypto-price --help
+Real Time Crypto Price Tracker
 
-usage: `crypto-price exchange:marketname`
+Usage:
+  crypto-price [flags] {exchange:ticker}... 
+
+Flags:
+  -h, --help              help for crypto-price
+      --i3bar             i3bar format (default true)
+      --json              JSON format
+      --jsonl             JSON line format
+      --satoshi           Convert btc market price to satoshi
+  -t, --template string   golang template format
+
+```
 
 example: `crypto-price --satoshi coinbase:btc-usd bittrex:btc-amp binance:xrp-btc`
-
-The `--satoshi` flag converts btc market values to satoshi.
 
 ## Suported exchanges
   - bittrex
