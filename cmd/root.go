@@ -25,8 +25,8 @@ var flags = struct {
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "crypto-price [flags] {exchange:ticker}... ",
-	Short: "Real Time Crypto Price Tracker",
-	Long:  `Real Time Crypto Price Tracker`,
+	Short: "Realtime Crypto Price Tracker",
+	Long:  `Realtime Crypto Price Tracker`,
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		c := cryptotracker.NewClient(cryptotracker.Options{
