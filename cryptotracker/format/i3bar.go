@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"golang.org/x/text/language"
@@ -39,7 +40,12 @@ func (i *i3BarFormat) Show(m Market) {
 
 	for _, k := range i.keys {
 		m := i.markets[k]
-		i.printer.Fprintf(i.Output, "<span foreground='%s'>%s: %0.1f (%+.1f%%)</span> ", color(m).Hex(), strings.ToUpper(m.Base()), m.Price(), percent(m))
+		prec := -1
+		if m.Price() < 0.1 {
+			prec = 8
+		}
+		priceFormat := strconv.FormatFloat(m.Price(), 'f', prec, 32)
+		i.printer.Fprintf(i.Output, "<span foreground='%s'>%s: "+priceFormat+" (%+.1f%%)</span> ", color(m).Hex(), strings.ToUpper(m.Base()), percent(m))
 	}
 
 	if len(i.markets) > 0 {
