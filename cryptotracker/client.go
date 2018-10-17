@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/u3mur4/crypto-price/cryptotracker/exchange"
@@ -108,10 +109,12 @@ func (c *Client) Run() {
 		c.wg.Add(1)
 		go func(name string) {
 			defer c.wg.Done()
-			for {
+			// lost connection retry max 10 times
+			for n := 0; n <= 10; n++ {
 				err := c.startExchange(name)
 				if err != nil {
 					logrus.WithError(err).WithField("name", name).Error("exchange stopped")
+					<-time.After(time.Second)
 				}
 			}
 		}(name)
