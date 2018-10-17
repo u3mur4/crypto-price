@@ -12,6 +12,7 @@ builds:
     post: upx dist/linux_amd64/crypto-price
 
 archive:
+  name_template: "{{ .Binary }}"
   files:
   - none*
   format: binary
