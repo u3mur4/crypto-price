@@ -4,7 +4,7 @@
 
 ```
 $ crypto-price --help
-Real Time Crypto Price Tracker
+Realtime Crypto Price Tracker
 
 Usage:
   crypto-price [flags] {exchange:ticker}... 
@@ -20,6 +20,14 @@ Flags:
 ```
 
 example: `crypto-price --satoshi coinbase:btc-usd bittrex:btc-amp binance:xrp-btc`
+
+i3blocks config:
+```
+[crypto]
+command=/path/to/crypto-price --satoshi coinbase:btc-usd bittrex:btc-amp bittrex:btc-xrp
+interval=persist
+markup=pango
+```
 
 ## Suported exchanges
   - bittrex
