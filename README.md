@@ -16,7 +16,7 @@ Flags:
       --jsonl             JSON line format
       --satoshi           Convert btc market price to satoshi
   -t, --template string   golang template format
-
+      --version           version for crypto-price
 ```
 
 example: `crypto-price --satoshi coinbase:btc-usd bittrex:btc-amp binance:xrp-btc`
