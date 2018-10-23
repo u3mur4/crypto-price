@@ -116,6 +116,7 @@ func (b *bittrex) register(product string) error {
 	}
 
 	b.markets[product] = &Market{
+		ExchangeName:  "bittrex",
 		BaseCurrency:  currencyPair[1],
 		QuoteCurrency: currencyPair[0],
 		OpenPrice:     open,

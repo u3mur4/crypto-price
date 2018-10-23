@@ -13,12 +13,13 @@ type jsonFormat struct {
 }
 
 type jsonMarket struct {
-	Base    string  `json:"base"`
-	Quote   string  `json:"quote"`
-	Open    float64 `json:"open"`
-	Price   float64 `json:"price"`
-	Percent float64 `json:"percent"`
-	Color   string  `json:"color"`
+	Exchange string  `json:"exchange"`
+	Base     string  `json:"base"`
+	Quote    string  `json:"quote"`
+	Open     float64 `json:"open"`
+	Price    float64 `json:"price"`
+	Percent  float64 `json:"percent"`
+	Color    string  `json:"color"`
 }
 
 // NewJSON displays the market as json format
@@ -33,12 +34,13 @@ func (j *jsonFormat) Open() { fmt.Fprintf(j.Output, "[") }
 
 func (j *jsonFormat) Show(m Market) {
 	b, _ := json.Marshal(&jsonMarket{
-		Base:    m.Base(),
-		Quote:   m.Quote(),
-		Open:    m.Open(),
-		Price:   m.Price(),
-		Percent: percent(m),
-		Color:   color(m).Hex(),
+		Exchange: m.Exchange(),
+		Base:     m.Base(),
+		Quote:    m.Quote(),
+		Open:     m.Open(),
+		Price:    m.Price(),
+		Percent:  percent(m),
+		Color:    color(m).Hex(),
 	})
 
 	format := ",\n%s"

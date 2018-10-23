@@ -4,10 +4,11 @@ import colorful "github.com/lucasb-eyer/go-colorful"
 
 // Market represents a currency pair
 type Market interface {
-	Base() string   // Base currency
-	Quote() string  // Quote currency
-	Open() float64  // Daily open price
-	Price() float64 // Current price
+	Exchange() string // name of the exchange
+	Base() string     // Base currency
+	Quote() string    // Quote currency
+	Open() float64    // Daily open price
+	Price() float64   // Current price
 }
 
 func percent(m Market) float64 {

@@ -22,12 +22,13 @@ func (j jsonLine) Open() {}
 
 func (j jsonLine) Show(m Market) {
 	b, _ := json.Marshal(&jsonMarket{
-		Base:    m.Base(),
-		Quote:   m.Quote(),
-		Open:    m.Open(),
-		Price:   m.Price(),
-		Percent: percent(m),
-		Color:   color(m).Hex(),
+		Exchange: m.Exchange(),
+		Base:     m.Base(),
+		Quote:    m.Quote(),
+		Open:     m.Open(),
+		Price:    m.Price(),
+		Percent:  percent(m),
+		Color:    color(m).Hex(),
 	})
 	fmt.Fprintf(j.Output, "%s,\n", string(b))
 }

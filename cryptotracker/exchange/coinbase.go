@@ -68,6 +68,7 @@ func (c coinbase) register(product string) error {
 	}
 
 	c.markets[product] = &Market{
+		ExchangeName:  "coinbase",
 		BaseCurrency:  currencyPair[0],
 		QuoteCurrency: currencyPair[1],
 		OpenPrice:     open,

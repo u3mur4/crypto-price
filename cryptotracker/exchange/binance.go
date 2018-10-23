@@ -67,6 +67,7 @@ func (b *binanceExchange) register(product string) error {
 	}
 
 	b.markets[product] = &Market{
+		ExchangeName:  "binance",
 		BaseCurrency:  currencyPair[0],
 		QuoteCurrency: currencyPair[1],
 		OpenPrice:     open,
