@@ -192,7 +192,12 @@ func (b *bittrex) listen(updateChan chan<- Market, errorChan chan<- error) {
 		}
 	}
 
-	b.socket.Run(msgHandler, errHandler)
+	err := b.socket.Run(msgHandler, errHandler)
+	if err != nil {
+		logrus.WithError(err).Error("cannot start connection")
+		errorChan <- err
+		return
+	}
 
 	if err := b.socket.Send(hubs.ClientMsg{
 		H: "c2",
@@ -203,7 +208,7 @@ func (b *bittrex) listen(updateChan chan<- Market, errorChan chan<- error) {
 		logrus.WithError(err).Error("cannot subscribe to SummaryLiteDeltas")
 	}
 
-	err := <-done
+	err = <-done
 	if err != nil {
 		logrus.WithError(err).Error("bittrex exchange stopped")
 		errorChan <- err
