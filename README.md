@@ -30,7 +30,6 @@ markup=pango
 ```
 
 ## Suported exchanges
-[//]: # (badges stolen from https://github.com/ccxt/ccxt)
 |                                                                                                                 | id       | name                                     |
 |-----------------------------------------------------------------------------------------------------------------|----------|------------------------------------------|
 |![binance](https://user-images.githubusercontent.com/1294454/29604020-d5483cdc-87ee-11e7-94c7-d1a8d9169293.jpg)  | binance  | [Binance](https://www.binance.com/)      |
@@ -38,6 +37,7 @@ markup=pango
 |![bittrex](https://user-images.githubusercontent.com/1294454/27766352-cf0b3c26-5ed5-11e7-82b7-f3826b7a97d8.jpg)  | bittrex  | [Bittrex](https://bittrex.com)           |
 |![cryptopia](https://user-images.githubusercontent.com/1294454/29484394-7b4ea6e2-84c6-11e7-83e5-1fccf4b2dc81.jpg)  | cryptopia  | [Cryptopia](https://www.cryptopia.co.nz)           |
 
+[//]: # (badges stolen from https://github.com/ccxt/ccxt)
 ## Supported Output formats
   - json
   - json line
