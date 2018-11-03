@@ -28,10 +28,11 @@ type Client struct {
 func NewClient(options Options) Client {
 	return Client{
 		exchanges: map[string]func() exchange.Exchange{
-			"coinbase": exchange.NewCoinbase,
-			"bittrex":  exchange.NewBittrex,
-			"binance":  exchange.NewBinance,
-			"fake":     exchange.NewFake,
+			"coinbase":  exchange.NewCoinbase,
+			"bittrex":   exchange.NewBittrex,
+			"binance":   exchange.NewBinance,
+			"cryptopia": exchange.NewCryptopia,
+			"fake":      exchange.NewFake,
 		},
 		markets:   make(map[string][]string),
 		options:   options,
