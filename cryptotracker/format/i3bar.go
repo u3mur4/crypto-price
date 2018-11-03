@@ -50,7 +50,7 @@ func (i *i3BarFormat) Show(m Market) {
 			if m.Price() < 0.1 {
 				quote = "Ƀ"
 			} else {
-				quote = "sɃ"
+				quote = "" // symbol for satoshi
 			}
 		} else if strings.EqualFold(m.Quote(), "usd") {
 			quote = "$"

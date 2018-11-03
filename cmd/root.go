@@ -24,7 +24,7 @@ var flags = struct {
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "crypto-price [flags] {exchange:ticker}... ",
+	Use:   "crypto-price [flags] {exchange:ticker}...",
 	Short: "Realtime Crypto Price Tracker",
 	Long:  `Realtime Crypto Price Tracker`,
 	Args:  cobra.MinimumNArgs(1),
@@ -65,11 +65,11 @@ func Execute(version, commit, date string) {
 
 func init() {
 	//
-	rootCmd.Flags().BoolVar(&flags.Satoshi, "satoshi", false, "Convert btc market price to satoshi")
+	rootCmd.Flags().BoolVar(&flags.Satoshi, "satoshi", false, "convert btc market price to satoshi")
 
 	// format flags
 	rootCmd.Flags().StringVarP(&flags.Template, "template", "t", "", "golang template format")
 	rootCmd.Flags().BoolVar(&flags.I3Bar, "i3bar", true, "i3bar format")
-	rootCmd.Flags().BoolVar(&flags.JSON, "json", false, "JSON format")
-	rootCmd.Flags().BoolVar(&flags.JSONLine, "jsonl", false, "JSON line format")
+	rootCmd.Flags().BoolVar(&flags.JSON, "json", false, "json format")
+	rootCmd.Flags().BoolVar(&flags.JSONLine, "jsonl", false, "json line format")
 }
