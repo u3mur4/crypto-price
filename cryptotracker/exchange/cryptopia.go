@@ -169,7 +169,8 @@ func (c *cryptopia) listen(updateChan chan<- Market, errorChan chan<- error) {
 				for _, a := range m.A {
 					// check if the market is watched
 					data := a.(map[string]interface{})
-					if market, ok := c.markets[data["Market"].(string)]; ok {
+					marketName := strings.ToLower(data["Market"].(string))
+					if market, ok := c.markets[marketName]; ok {
 						market.ActualPrice = data["Last"].(float64)
 						updateChan <- *market
 					}
