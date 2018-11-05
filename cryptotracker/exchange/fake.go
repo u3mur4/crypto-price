@@ -28,10 +28,10 @@ func (f *fake) Listen(ctx context.Context, markets []Market, updateC chan<- []Ma
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-time.After(time.Millisecond * 100):
-			for _, market := range markets {
-				market.ActualPrice++
-				if market.ActualPrice/market.OpenPrice >= 2 {
-					market.ActualPrice = 750
+			for idx := range markets {
+				markets[idx].ActualPrice++
+				if markets[idx].ActualPrice/markets[idx].OpenPrice >= 2 {
+					markets[idx].ActualPrice = 750
 				}
 			}
 			updateC <- markets

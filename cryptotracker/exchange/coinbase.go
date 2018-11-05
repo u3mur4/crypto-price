@@ -111,9 +111,9 @@ func (c coinbase) Listen(ctx context.Context, markets []Market, updateC chan<- [
 			return err
 		case message := <-messageC:
 			if message.Type == "match" {
-				for _, market := range markets {
-					if strings.EqualFold(c.marketToSymbol(market), message.ProductId) {
-						market.ActualPrice = message.Price
+				for idx := range markets {
+					if strings.EqualFold(c.marketToSymbol(markets[idx]), message.ProductId) {
+						markets[idx].ActualPrice = message.Price
 						updateC <- markets
 					}
 				}

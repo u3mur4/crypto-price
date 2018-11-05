@@ -113,12 +113,12 @@ func (b *bittrex) Listen(ctx context.Context, markets []Market, updateC chan<- [
 				return
 			}
 			update := false
-			for _, market := range markets {
-				liteResp, err := resp.Get(b.marketToSymbol(market))
+			for idx := range markets {
+				liteResp, err := resp.Get(b.marketToSymbol(markets[idx]))
 				if err != nil {
 					continue
 				}
-				market.ActualPrice = liteResp.Last
+				markets[idx].ActualPrice = liteResp.Last
 				update = true
 			}
 			if update {

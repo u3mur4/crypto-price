@@ -61,10 +61,11 @@ func (e *exchange) Start(ctx context.Context, updateC chan<- []Market) error {
 
 	// refresh open price every hour
 	runEvery(ctx, time.Hour, func() {
-		for _, market := range e.markets {
-			market, err := e.adapter.GetOpen(market)
+		for idx := range e.markets {
+			market, err := e.adapter.GetOpen(e.markets[idx])
+			e.markets[idx] = market
 			if err != nil {
-				logrus.WithField("product", market).WithError(err).Warn("cannot get daily open price")
+				logrus.WithField("product", e.markets[idx]).WithError(err).Warn("cannot get daily open price")
 				continue
 			}
 		}

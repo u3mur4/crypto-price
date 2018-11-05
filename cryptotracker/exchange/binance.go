@@ -20,7 +20,7 @@ func (b binance) Name() string {
 }
 
 func (b binance) marketToSymbol(market Market) string {
-	return market.Base() + "-" + market.Quote()
+	return strings.ToUpper(market.Base() + market.Quote())
 }
 
 func (b binance) GetOpen(market Market) (Market, error) {
@@ -60,14 +60,14 @@ func (b *binance) Listen(ctx context.Context, markets []Market, updateC chan<- [
 	miniHandler := func(event binancelib.WsAllMiniMarketsStatEvent) {
 		update := false
 		for _, marketEvent := range event {
-			for _, market := range markets {
-				if strings.EqualFold(b.marketToSymbol(market), marketEvent.Symbol) {
+			for idx := range markets {
+				if strings.EqualFold(b.marketToSymbol(markets[idx]), marketEvent.Symbol) {
 					price, err := strconv.ParseFloat(marketEvent.LastPrice, 64)
 					if err != nil {
 						logrus.WithError(err).WithField("market", marketEvent.Symbol).Error("cannot parse price")
 						continue
 					}
-					market.ActualPrice = price
+					markets[idx].ActualPrice = price
 					update = true
 				}
 			}

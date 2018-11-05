@@ -110,9 +110,9 @@ func (c *cryptopia) Listen(ctx context.Context, markets []Market, updateC chan<-
 					// check if the market is watched
 					data := a.(map[string]interface{})
 					marketName := data["Market"].(string)
-					for _, market := range markets {
-						if strings.EqualFold(marketName, c.marketToSymbol(market)) {
-							market.ActualPrice = data["Last"].(float64)
+					for idx := range markets {
+						if strings.EqualFold(marketName, c.marketToSymbol(markets[idx])) {
+							markets[idx].ActualPrice = data["Last"].(float64)
 							update = true
 						}
 					}
