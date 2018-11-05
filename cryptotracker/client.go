@@ -142,7 +142,7 @@ func (c *client) Start() {
 	for {
 		err := c.startAllExchange()
 		if err != nil {
-			logrus.WithError(err).Warning("exchanges stoped")
+			logrus.WithError(err).Error("exchanges stoped")
 		}
 
 		if bf.GetElapsedTime() >= time.Minute {

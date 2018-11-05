@@ -33,7 +33,7 @@ var rootCmd = &cobra.Command{
 		if flags.Debug {
 			logrus.SetLevel(logrus.DebugLevel)
 		} else {
-			logrus.SetLevel(logrus.PanicLevel)
+			logrus.SetLevel(logrus.ErrorLevel)
 		}
 		c := cryptotracker.NewClient(cryptotracker.Options{
 			ConvertToSatoshi: flags.Satoshi,
