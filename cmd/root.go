@@ -29,18 +29,19 @@ var rootCmd = &cobra.Command{
 	Long:  `Realtime Crypto Price Tracker`,
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		// logrus.SetLevel(logrus.DebugLevel)
 		c := cryptotracker.NewClient(cryptotracker.Options{
 			ConvertToSatoshi: flags.Satoshi,
 		})
 
 		if flags.JSON {
-			c.Formatter = format.NewJSON()
+			c.SetFormatter(format.NewJSON())
 		} else if flags.JSONLine {
-			c.Formatter = format.NewJSONLine()
+			c.SetFormatter(format.NewJSONLine())
 		} else if flags.Template != "" {
-			c.Formatter = format.NewTemplate(flags.Template)
+			c.SetFormatter(format.NewTemplate(flags.Template))
 		} else if flags.I3Bar {
-			c.Formatter = format.NewI3Bar()
+			c.SetFormatter(format.NewI3Bar())
 		}
 
 		err := c.Register(args...)
@@ -48,7 +49,7 @@ var rootCmd = &cobra.Command{
 			logrus.WithError(err).Fatal("register error")
 		}
 
-		c.Run()
+		c.Start()
 	},
 }
 
