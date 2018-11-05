@@ -19,6 +19,7 @@ var flags = struct {
 	I3Bar    bool
 	JSON     bool
 	JSONLine bool
+	Debug    bool
 	// Throotle    float64
 }{}
 
@@ -29,7 +30,11 @@ var rootCmd = &cobra.Command{
 	Long:  `Realtime Crypto Price Tracker`,
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		// logrus.SetLevel(logrus.DebugLevel)
+		if flags.Debug {
+			logrus.SetLevel(logrus.DebugLevel)
+		} else {
+			logrus.SetLevel(logrus.PanicLevel)
+		}
 		c := cryptotracker.NewClient(cryptotracker.Options{
 			ConvertToSatoshi: flags.Satoshi,
 		})
@@ -65,6 +70,7 @@ func Execute(version, commit, date string) {
 }
 
 func init() {
+	rootCmd.Flags().BoolVar(&flags.Debug, "debug", false, "Enable debug log")
 	//
 	rootCmd.Flags().BoolVar(&flags.Satoshi, "satoshi", false, "convert btc market price to satoshi")
 
