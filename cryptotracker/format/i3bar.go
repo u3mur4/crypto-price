@@ -44,20 +44,20 @@ func (i *i3BarFormat) Show(m Market) {
 		if m.Price() < 0.1 {
 			prec = 8
 		}
-		priceFormat := strconv.FormatFloat(m.Price(), 'f', prec, 32)
+		price := strconv.FormatFloat(m.Price(), 'f', prec, 32)
 		quote := ""
-		if strings.EqualFold(m.Quote(), "btc") {
+		if strings.EqualFold(m.Base(), "btc") {
 			if m.Price() < 0.1 {
 				quote = "Ƀ"
 			} else {
 				quote = "" // symbol for satoshi
 			}
-		} else if strings.EqualFold(m.Quote(), "usd") {
+		} else if strings.EqualFold(m.Base(), "usd") {
 			quote = "$"
-		} else if strings.EqualFold(m.Quote(), "eur") {
+		} else if strings.EqualFold(m.Base(), "eur") {
 			quote = "€"
 		}
-		i.printer.Fprintf(i.Output, "<span foreground='%s'>%s: "+priceFormat+"%s (%+.1f%%)</span> ", color(m).Hex(), strings.ToUpper(m.Base()), quote, percent(m))
+		i.printer.Fprintf(i.Output, "<span foreground='%s'>%s: "+price+"%s (%+.1f%%)</span> ", color(m).Hex(), strings.ToUpper(m.Quote()), quote, percent(m))
 	}
 
 	if len(i.markets) > 0 {
