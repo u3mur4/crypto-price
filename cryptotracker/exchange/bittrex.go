@@ -3,12 +3,12 @@ package exchange
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"strings"
-	"time"
 
 	"github.com/carterjones/signalr"
 	"github.com/carterjones/signalr/hubs"
@@ -16,8 +16,7 @@ import (
 )
 
 type bittrex struct {
-	socket  *signalr.Client
-	markets map[string]*Market
+	socket *signalr.Client
 }
 
 type latestTickResult struct {
@@ -67,105 +66,45 @@ func (r *summaryLiteDeltaResponse) Get(product string) (summaryLiteDeltaMessage,
 	return summaryLiteDeltaMessage{}, fmt.Errorf("not found")
 }
 
-// Gets the daily open price using the http api
-func (b bittrex) getOpen(product string) (float64, error) {
+func (b bittrex) Name() string {
+	return "bittrex"
+}
+
+func (b bittrex) marketToSymbol(market Market) string {
+	return market.Base() + "-" + market.Quote()
+}
+
+func (b bittrex) GetOpen(market Market) (Market, error) {
 	respJSON := latestTickResponse{}
-	err := httpGetJSON("https://bittrex.com/Api/v2.0/pub/market/GetLatestTick?marketName="+product+"&tickInterval=day", &respJSON)
+	err := httpGetJSON("https://bittrex.com/Api/v2.0/pub/market/GetLatestTick?marketName="+b.marketToSymbol(market)+"&tickInterval=day", &respJSON)
 	if err != nil {
-		return 0, err
+		return market, err
 	}
 
 	if respJSON.Success == false {
-		return 0, fmt.Errorf("%v", respJSON.Message)
+		return market, fmt.Errorf("%v", respJSON.Message)
 	}
 
-	return respJSON.Result[0].Open, nil
+	market.OpenPrice = respJSON.Result[0].Open
+	return market, nil
 }
 
-// Gets the actual price using the http api
-func (b bittrex) getPrice(product string) (float64, error) {
+func (b bittrex) GetLast(market Market) (Market, error) {
 	respJSON := gettickerResponse{}
-	err := httpGetJSON("https://bittrex.com/api/v1.1/public/getticker?market="+product, &respJSON)
+	err := httpGetJSON("https://bittrex.com/api/v1.1/public/getticker?market="+b.marketToSymbol(market), &respJSON)
 	if err != nil {
-		return 0, err
+		return market, err
 	}
 
 	if respJSON.Success == false {
-		return 0, fmt.Errorf("%v", respJSON.Message)
+		return market, fmt.Errorf("%v", respJSON.Message)
 	}
 
-	return respJSON.Result.Last, nil
+	market.ActualPrice = respJSON.Result.Last
+	return market, nil
 }
 
-func (b *bittrex) register(product string) error {
-	product = strings.ToLower(product)
-
-	currencyPair := strings.Split(product, "-")
-	if len(currencyPair) != 2 {
-		return fmt.Errorf("Invalid market: %s", product)
-	}
-
-	open, err := b.getOpen(product)
-	if err != nil {
-		return err
-	}
-
-	price, err := b.getPrice(product)
-	if err != nil {
-		return err
-	}
-
-	b.markets[product] = &Market{
-		ExchangeName:  "bittrex",
-		BaseCurrency:  currencyPair[1],
-		QuoteCurrency: currencyPair[0],
-		OpenPrice:     open,
-		ActualPrice:   price,
-	}
-
-	return nil
-}
-
-func (b *bittrex) Listen(products []string) (<-chan Market, <-chan error) {
-	for _, product := range products {
-		err := b.register(product)
-		if err != nil {
-			logrus.WithField("product", product).WithError(err).Warn("cannot register bittrex market")
-		}
-	}
-
-	updateChan := make(chan Market)
-	errorChan := make(chan error)
-	go b.listen(updateChan, errorChan)
-	return updateChan, errorChan
-}
-
-func (b *bittrex) listen(updateChan chan<- Market, errorChan chan<- error) {
-	defer close(errorChan)
-	defer close(updateChan)
-
-	if len(b.markets) == 0 {
-		return
-	}
-
-	// send the initial market state
-	for _, market := range b.markets {
-		updateChan <- *market
-	}
-
-	// refresh open price
-	doneCh := runEvery(time.Hour, func() {
-		for product, market := range b.markets {
-			open, err := b.getOpen(product)
-			if err != nil {
-				logrus.WithField("product", product).WithError(err).Warn("cannot get daily open price")
-				continue
-			}
-			market.OpenPrice = open
-		}
-	})
-	defer close(doneCh)
-
+func (b *bittrex) Listen(ctx context.Context, markets []Market, updateC chan<- []Market) error {
 	// receive any price change using websockets
 	msgHandler := func(msg signalr.Message) {
 		if len(msg.M) > 0 && msg.M[0].M == "uL" {
@@ -173,30 +112,29 @@ func (b *bittrex) listen(updateChan chan<- Market, errorChan chan<- error) {
 			if err != nil {
 				return
 			}
-			for product, market := range b.markets {
-				liteResp, err := resp.Get(product)
+			update := false
+			for _, market := range markets {
+				liteResp, err := resp.Get(b.marketToSymbol(market))
 				if err != nil {
 					continue
 				}
 				market.ActualPrice = liteResp.Last
-				updateChan <- *market
+				update = true
+			}
+			if update {
+				updateC <- markets
 			}
 		}
 	}
 
-	done := make(chan error)
+	errC := make(chan error)
 	errHandler := func(err error) {
-		if err != nil {
-			defer close(done)
-			done <- err
-		}
+		errC <- err
 	}
 
 	err := b.socket.Run(msgHandler, errHandler)
 	if err != nil {
-		logrus.WithError(err).Error("cannot start connection")
-		errorChan <- err
-		return
+		return err
 	}
 
 	if err := b.socket.Send(hubs.ClientMsg{
@@ -208,10 +146,13 @@ func (b *bittrex) listen(updateChan chan<- Market, errorChan chan<- error) {
 		logrus.WithError(err).Error("cannot subscribe to SummaryLiteDeltas")
 	}
 
-	err = <-done
-	if err != nil {
-		logrus.WithError(err).Error("bittrex exchange stopped")
-		errorChan <- err
+	select {
+	case <-ctx.Done():
+		b.socket.Close()
+		return ctx.Err()
+	case err := <-errC:
+		b.socket.Close()
+		return err
 	}
 }
 
@@ -266,8 +207,7 @@ func NewBittrex() Exchange {
 		nil)
 	c.Headers["User-Agent"] = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
-	return &bittrex{
-		socket:  c,
-		markets: make(map[string]*Market),
-	}
+	return newExchange(&bittrex{
+		socket: c,
+	})
 }

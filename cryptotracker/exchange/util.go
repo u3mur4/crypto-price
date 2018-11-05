@@ -1,6 +1,7 @@
 package exchange
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -22,19 +23,17 @@ func httpGetJSON(url string, v interface{}) error {
 	return nil
 }
 
-func runEvery(d time.Duration, f func()) (done chan struct{}) {
-	done = make(chan struct{})
+func runEvery(ctx context.Context, d time.Duration, f func()) {
 	go func() {
-		run := true
-		for run {
-			nextTime := time.Now().Truncate(d).Add(d).Sub(time.Now())
+		for {
+			goalTime := time.Now().Truncate(d).Add(d)
+			wait := goalTime.Sub(time.Now())
 			select {
-			case <-time.After(nextTime):
+			case <-time.After(wait):
 				f()
-			case <-done:
-				run = false
+			case <-ctx.Done():
+				return
 			}
 		}
 	}()
-	return done
 }

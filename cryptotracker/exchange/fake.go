@@ -1,41 +1,44 @@
 package exchange
 
 import (
+	"context"
 	"time"
 )
 
 type fake struct {
-	m Market
 }
 
-func (f fake) Listen(products []string) (<-chan Market, <-chan error) {
-	updateChan := make(chan Market)
-	errorChan := make(chan error)
-	go f.listen(updateChan, errorChan)
-	return updateChan, errorChan
+func (f fake) Name() string {
+	return "fake"
 }
 
-func (f *fake) listen(updateChan chan<- Market, errorChan chan<- error) {
-	defer close(errorChan)
-	defer close(updateChan)
+func (f fake) GetOpen(market Market) (Market, error) {
+	market.OpenPrice = 1000
+	return market, nil
+}
 
+func (f fake) GetLast(market Market) (Market, error) {
+	market.ActualPrice = 750
+	return market, nil
+}
+
+func (f *fake) Listen(ctx context.Context, markets []Market, updateC chan<- []Market) error {
 	for {
-		time.Sleep(time.Millisecond * 100)
-		f.m.ActualPrice += 1
-		if f.m.ActualPrice/f.m.OpenPrice >= 2 {
-			f.m.ActualPrice = 100
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Millisecond * 100):
+			for _, market := range markets {
+				market.ActualPrice++
+				if market.ActualPrice/market.OpenPrice >= 2 {
+					market.ActualPrice = 750
+				}
+			}
+			updateC <- markets
 		}
-		updateChan <- f.m
 	}
 }
 
 func NewFake() Exchange {
-	return &fake{
-		m: Market{
-			BaseCurrency:  "fake",
-			QuoteCurrency: "mock",
-			OpenPrice:     1000,
-			ActualPrice:   800,
-		},
-	}
+	return newExchange(&fake{})
 }

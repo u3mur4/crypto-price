@@ -1,6 +1,7 @@
 package exchange
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -8,127 +9,69 @@ import (
 
 	ws "github.com/gorilla/websocket"
 	gdax "github.com/preichenberger/go-gdax"
-	"github.com/sirupsen/logrus"
 )
 
 var coinbaseAPI = "https://api.pro.coinbase.com"
 
 type coinbase struct {
-	markets map[string]*Market
+}
+
+func (c coinbase) Name() string {
+	return "coinbase"
+}
+
+func (c coinbase) marketToSymbol(market Market) string {
+	return market.Base() + "-" + market.Quote()
 }
 
 // Gets the daily open price using the http api
-func (c coinbase) getOpen(product string) (float64, error) {
+func (c coinbase) GetOpen(market Market) (Market, error) {
 	day := time.Now().UTC().Truncate(time.Hour * 24)
 	start := day.Add(time.Minute * -5).Format(time.RFC3339)
 	end := day.Format(time.RFC3339)
 	granularity := 300
 
-	url := fmt.Sprintf("%s/products/%s/candles?start=%s&end=%s&granularity=%d", coinbaseAPI, product, start, end, granularity)
+	url := fmt.Sprintf("%s/products/%s/candles?start=%s&end=%s&granularity=%d", coinbaseAPI, c.marketToSymbol(market), start, end, granularity)
 	response := [][]float64{}
 	err := httpGetJSON(url, &response)
 	if err != nil {
-		return 0, err
+		return market, err
 	}
 	// [ time, low, high, open, close, volume ]
-	return response[0][4], nil
+	market.OpenPrice = response[0][4]
+	return market, nil
 }
 
-// Gets the actual price using the http api
-func (c coinbase) getPrice(product string) (float64, error) {
-	url := fmt.Sprintf("%s/products/%s/ticker", coinbaseAPI, product)
+func (c coinbase) GetLast(market Market) (Market, error) {
+	url := fmt.Sprintf("%s/products/%s/ticker", coinbaseAPI, c.marketToSymbol(market))
 	response := struct {
 		Price string `json:"price"`
 	}{}
 	err := httpGetJSON(url, &response)
 	if err != nil {
-		return 0, err
+		return market, err
 	}
 
-	p, _ := strconv.ParseFloat(response.Price, 64)
-	return p, nil
-}
-
-func (c coinbase) register(product string) error {
-	product = strings.ToLower(product)
-
-	currencyPair := strings.Split(product, "-")
-	if len(currencyPair) != 2 {
-		return fmt.Errorf("Invalid market: %s", product)
-	}
-
-	open, err := c.getOpen(product)
+	price, err := strconv.ParseFloat(response.Price, 64)
 	if err != nil {
-		return err
+		return market, err
 	}
 
-	price, err := c.getPrice(product)
-	if err != nil {
-		return err
-	}
-
-	c.markets[product] = &Market{
-		ExchangeName:  "coinbase",
-		BaseCurrency:  currencyPair[0],
-		QuoteCurrency: currencyPair[1],
-		OpenPrice:     open,
-		ActualPrice:   price,
-	}
-
-	return nil
+	market.ActualPrice = price
+	return market, nil
 }
 
-func (c coinbase) Listen(products []string) (<-chan Market, <-chan error) {
-	for _, product := range products {
-		err := c.register(product)
-		if err != nil {
-			logrus.WithField("product", product).WithError(err).Warn("cannot register coinbase market")
-		}
-	}
-
-	updateChan := make(chan Market)
-	errorChan := make(chan error)
-	go c.listen(updateChan, errorChan)
-	return updateChan, errorChan
-}
-
-func (c coinbase) listen(updateChan chan<- Market, errorChan chan<- error) {
-	defer close(errorChan)
-	defer close(updateChan)
-
-	if len(c.markets) == 0 {
-		return
-	}
-
-	// send the initial market state
-	for _, market := range c.markets {
-		updateChan <- *market
-	}
-
-	// refresh open price
-	done := runEvery(time.Hour, func() {
-		for product, market := range c.markets {
-			open, err := c.getOpen(product)
-			if err != nil {
-				logrus.WithField("product", product).WithError(err).Warn("cannot get daily open price")
-				continue
-			}
-			market.OpenPrice = open
-		}
-	})
-	defer close(done)
-
+func (c coinbase) Listen(ctx context.Context, markets []Market, updateC chan<- []Market) error {
 	// receive any price change using websockets
 	var wsDialer ws.Dialer
 	wsConn, _, err := wsDialer.Dial("wss://ws-feed.gdax.com", nil)
 	if err != nil {
-		errorChan <- err
-		return
+		return err
 	}
 
 	productIDs := []string{}
-	for product := range c.markets {
-		productIDs = append(productIDs, product)
+	for _, market := range markets {
+		productIDs = append(productIDs, c.marketToSymbol(market))
 	}
 
 	subscribe := gdax.Message{
@@ -142,21 +85,38 @@ func (c coinbase) listen(updateChan chan<- Market, errorChan chan<- error) {
 	}
 
 	if err := wsConn.WriteJSON(subscribe); err != nil {
-		errorChan <- err
-		return
+		return err
 	}
 
-	message := gdax.Message{}
-	for {
-		if err := wsConn.ReadJSON(&message); err != nil {
-			errorChan <- err
-			return
+	messageC := make(chan gdax.Message)
+	errC := make(chan error)
+	go func() {
+		for {
+			message := gdax.Message{}
+			if err := wsConn.ReadJSON(&message); err != nil {
+				errC <- err
+				return
+			}
+			messageC <- message
 		}
+	}()
 
-		if message.Type == "match" {
-			if market, ok := c.markets[strings.ToLower(message.ProductId)]; ok {
-				market.ActualPrice = message.Price
-				updateChan <- *market
+	for {
+		select {
+		case <-ctx.Done():
+			wsConn.Close()
+			return ctx.Err()
+		case err := <-errC:
+			wsConn.Close()
+			return err
+		case message := <-messageC:
+			if message.Type == "match" {
+				for _, market := range markets {
+					if strings.EqualFold(c.marketToSymbol(market), message.ProductId) {
+						market.ActualPrice = message.Price
+						updateC <- markets
+					}
+				}
 			}
 		}
 	}
@@ -164,7 +124,5 @@ func (c coinbase) listen(updateChan chan<- Market, errorChan chan<- error) {
 
 // NewCoinbase tracks a product on gdax/coinbase exchange
 func NewCoinbase() Exchange {
-	return coinbase{
-		markets: make(map[string]*Market),
-	}
+	return newExchange(coinbase{})
 }
