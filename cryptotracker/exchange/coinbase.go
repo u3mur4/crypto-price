@@ -21,7 +21,7 @@ func (c coinbase) Name() string {
 }
 
 func (c coinbase) marketToSymbol(market Market) string {
-	return market.Base() + "-" + market.Quote()
+	return market.Quote() + "-" + market.Base()
 }
 
 // Gets the daily open price using the http api

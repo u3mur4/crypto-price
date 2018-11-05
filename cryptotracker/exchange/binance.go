@@ -20,7 +20,7 @@ func (b binance) Name() string {
 }
 
 func (b binance) marketToSymbol(market Market) string {
-	return strings.ToUpper(market.Base() + market.Quote())
+	return strings.ToUpper(market.Quote() + market.Base())
 }
 
 func (b binance) GetOpen(market Market) (Market, error) {
