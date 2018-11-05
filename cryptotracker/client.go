@@ -87,7 +87,7 @@ func (c *client) applyOptions(m *exchange.Market) {
 func (c *client) showMarket(markets []exchange.Market) {
 	for _, market := range markets {
 		c.applyOptions(&market)
-		c.formatter.Show(&market)
+		c.formatter.Show(market)
 	}
 }
 
