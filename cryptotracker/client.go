@@ -47,7 +47,7 @@ func NewClient(options Options) Client {
 		markets:   make(map[string][]string),
 		options:   options,
 		updateC:   make(chan []exchange.Market, 10),
-		formatter: format.NewI3Bar(),
+		formatter: format.NewI3Bar(format.I3BarConfig{}),
 	}
 }
 

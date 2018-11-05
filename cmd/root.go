@@ -13,13 +13,14 @@ import (
 )
 
 var flags = struct {
-	Format   string
-	Template string
-	Satoshi  bool
-	I3Bar    bool
-	JSON     bool
-	JSONLine bool
-	Debug    bool
+	Format    string
+	Template  string
+	Satoshi   bool
+	I3Bar     bool
+	I3BarSort string
+	JSON      bool
+	JSONLine  bool
+	Debug     bool
 	// Throotle    float64
 }{}
 
@@ -46,7 +47,9 @@ var rootCmd = &cobra.Command{
 		} else if flags.Template != "" {
 			c.SetFormatter(format.NewTemplate(flags.Template))
 		} else if flags.I3Bar {
-			c.SetFormatter(format.NewI3Bar())
+			c.SetFormatter(format.NewI3Bar(format.I3BarConfig{
+				Sort: flags.I3BarSort,
+			}))
 		}
 
 		err := c.Register(args...)
@@ -77,6 +80,7 @@ func init() {
 	// format flags
 	rootCmd.Flags().StringVarP(&flags.Template, "template", "t", "", "golang template format")
 	rootCmd.Flags().BoolVar(&flags.I3Bar, "i3bar", true, "i3bar format")
+	rootCmd.Flags().StringVar(&flags.I3BarSort, "i3bar-sort", "keep", "sort markets by change. values: keep, inc, dec")
 	rootCmd.Flags().BoolVar(&flags.JSON, "json", false, "json format")
 	rootCmd.Flags().BoolVar(&flags.JSONLine, "jsonl", false, "json line format")
 }
