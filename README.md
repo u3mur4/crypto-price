@@ -57,3 +57,6 @@ go install
 
 ## Download binary (only for linux)
   - Check [releases](https://github.com/u3mur4/crypto-price/releases)
+  
+## TODO
+- [ ] Add alert
