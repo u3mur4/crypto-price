@@ -22,6 +22,7 @@ type i3BarFormat struct {
 
 type I3BarConfig struct {
 	Sort string
+	Icon bool
 }
 
 type byPercent struct {
@@ -33,11 +34,11 @@ type byPercent struct {
 func (a byPercent) Len() int { return len(a.Keys) }
 func (a byPercent) Less(i, j int) bool {
 	f := percent(a.Markets[a.Keys[i]])
-	s := percent(a.Markets[a.Keys[i]])
+	s := percent(a.Markets[a.Keys[j]])
 	if a.Increase {
-		return f > s
+		return f < s
 	}
-	return f < s
+	return f > s
 }
 func (a *byPercent) Swap(i, j int) { a.Keys[i], a.Keys[j] = a.Keys[j], a.Keys[i] }
 
@@ -52,6 +53,42 @@ func NewI3Bar(config I3BarConfig) Formatter {
 }
 
 func (i i3BarFormat) Open() {}
+
+func (i *i3BarFormat) formatBase(market Market) string {
+	if strings.EqualFold(market.Base(), "btc") {
+		if market.Price() < 0.1 {
+			return "Ƀ"
+		} else {
+			return "" // symbol for satoshi
+		}
+	} else if strings.EqualFold(market.Base(), "usd") {
+		return "$"
+	} else if strings.EqualFold(market.Base(), "eur") {
+		return "€"
+	}
+	return ""
+}
+
+func (i *i3BarFormat) formatPrice(market Market) string {
+	prec := -1
+	if market.Price() < 0.1 {
+		prec = 8
+	}
+	return strconv.FormatFloat(market.Price(), 'f', prec, 32)
+}
+
+func (i *i3BarFormat) getIcon(market Market) string {
+	name := strings.ToUpper(market.Quote())
+
+	if icon, ok := i3BarIcons[name+"-alt"]; ok {
+		return icon
+	}
+
+	if icon, ok := i3BarIcons[name]; ok {
+		return icon
+	}
+	return ""
+}
 
 func (i *i3BarFormat) Show(m Market) {
 	key := m.Base() + m.Quote()
@@ -76,24 +113,17 @@ func (i *i3BarFormat) Show(m Market) {
 
 	for _, k := range i.keys {
 		market := i.markets[k]
-		prec := -1
-		if market.Price() < 0.1 {
-			prec = 8
+
+		price := i.formatPrice(market)
+		base := i.formatBase(market)
+		icon := i.getIcon(market)
+
+		if i.config.Icon && icon != "" {
+			i.printer.Fprintf(i.Output, "<span font='cryptocoins' foreground='%s'>%s</span><span>: </span>", color(market).Hex(), icon)
+		} else {
+			i.printer.Fprintf(i.Output, "<span foreground='%s'>%s: </span>", color(market).Hex(), strings.ToUpper(market.Quote()))
 		}
-		price := strconv.FormatFloat(market.Price(), 'f', prec, 32)
-		base := ""
-		if strings.EqualFold(market.Base(), "btc") {
-			if market.Price() < 0.1 {
-				base = "Ƀ"
-			} else {
-				base = "" // symbol for satoshi
-			}
-		} else if strings.EqualFold(market.Base(), "usd") {
-			base = "$"
-		} else if strings.EqualFold(market.Base(), "eur") {
-			base = "€"
-		}
-		i.printer.Fprintf(i.Output, "<span foreground='%s'>%s: "+price+"%s (%+.1f%%)</span> ", color(market).Hex(), strings.ToUpper(market.Quote()), base, percent(market))
+		i.printer.Fprintf(i.Output, "<span foreground='%s'>%s%s (%+.1f%%)</span> ", color(market).Hex(), price, base, percent(market))
 	}
 
 	if len(i.markets) > 0 {

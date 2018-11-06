@@ -18,6 +18,7 @@ var flags = struct {
 	Satoshi   bool
 	I3Bar     bool
 	I3BarSort string
+	I3BarIcon bool
 	JSON      bool
 	JSONLine  bool
 	Debug     bool
@@ -49,6 +50,7 @@ var rootCmd = &cobra.Command{
 		} else if flags.I3Bar {
 			c.SetFormatter(format.NewI3Bar(format.I3BarConfig{
 				Sort: flags.I3BarSort,
+				Icon: flags.I3BarIcon,
 			}))
 		}
 
@@ -80,6 +82,7 @@ func init() {
 	// format flags
 	rootCmd.Flags().StringVarP(&flags.Template, "template", "t", "", "golang template format")
 	rootCmd.Flags().BoolVar(&flags.I3Bar, "i3bar", true, "i3bar format")
+	rootCmd.Flags().BoolVar(&flags.I3BarIcon, "i3bar-icon", false, "Enable icons. (https://github.com/AllienWorks/cryptocoins)")
 	rootCmd.Flags().StringVar(&flags.I3BarSort, "i3bar-sort", "keep", "sort markets by change. values: keep, inc, dec")
 	rootCmd.Flags().BoolVar(&flags.JSON, "json", false, "json format")
 	rootCmd.Flags().BoolVar(&flags.JSONLine, "jsonl", false, "json line format")
