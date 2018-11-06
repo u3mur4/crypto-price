@@ -61,6 +61,13 @@ func (c cryptopia) marketToSymbol(market Market) string {
 	return market.Quote() + "_" + market.Base()
 }
 
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 func (c cryptopia) GetOpen(market Market) (Market, error) {
 	respJSON := getMarketHistory{}
 
@@ -76,7 +83,7 @@ func (c cryptopia) GetOpen(market Market) (Market, error) {
 	day := time.Now().UTC().Truncate(time.Hour * 24).Unix()
 	for index, c := range respJSON.Data {
 		if c.Timestamp <= day {
-			market.OpenPrice = respJSON.Data[index-1].Price
+			market.OpenPrice = respJSON.Data[max(index-1, 0)].Price
 			return market, nil
 		}
 	}
