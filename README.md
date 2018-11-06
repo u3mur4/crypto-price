@@ -10,21 +10,24 @@ Usage:
   crypto-price [flags] {exchange:ticker}...
 
 Flags:
-  -h, --help              help for crypto-price
-      --i3bar             i3bar format (default true)
-      --json              json format
-      --jsonl             json line format
-      --satoshi           convert btc market price to satoshi
-  -t, --template string   golang template format
-      --version           version for crypto-price
+      --debug               Enable debug log
+  -h, --help                help for crypto-price
+      --i3bar               i3bar format (default true)
+      --i3bar-icon          Enable icons. (https://github.com/AllienWorks/cryptocoins)
+      --i3bar-sort string   sort markets by change. values: keep, inc, dec (default "keep")
+      --json                json format
+      --jsonl               json line format
+      --satoshi             convert btc market price to satoshi
+  -t, --template string     golang template format
+      --version             version for crypto-price
 ```
 
-example: `crypto-price --satoshi coinbase:btc-usd bittrex:btc-amp binance:xrp-btc`
+example: `crypto-price --satoshi --jsonl coinbase:btc-usd bittrex:btc-amp binance:xrp-btc`
 
 i3blocks config:
 ```
 [crypto]
-command=/path/to/crypto-price --satoshi coinbase:btc-usd bittrex:btc-amp bittrex:btc-xrp
+command=/path/to/crypto-price --satoshi --i3bar --i3bar-sort dec coinbase:btc-usd bittrex:btc-amp bittrex:btc-xrp
 interval=persist
 markup=pango
 ```
