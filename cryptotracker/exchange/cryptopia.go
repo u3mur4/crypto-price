@@ -88,6 +88,12 @@ func (c cryptopia) GetOpen(market Market) (Market, error) {
 		}
 	}
 
+	// not found: use the oldest known daily value
+	if len(respJSON.Data) > 0 {
+		market.OpenPrice = respJSON.Data[len(respJSON.Data)-1].Price
+		return market, nil
+	}
+
 	return market, fmt.Errorf("open price not found in market history")
 }
 
