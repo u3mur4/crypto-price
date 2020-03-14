@@ -1,9 +1,5 @@
 package main
 
-import (
-	"github.com/u3mur4/crypto-price/cmd"
-)
-
 var (
 	version = "dev"
 	commit  = "none"
@@ -11,5 +7,5 @@ var (
 )
 
 func main() {
-	cmd.Execute(version, commit, date)
+	Execute(version, commit, date)
 }

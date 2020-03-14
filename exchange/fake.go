@@ -6,39 +6,40 @@ import (
 )
 
 type fake struct {
+	helper
 }
 
 func (f fake) Name() string {
 	return "fake"
 }
 
-func (f fake) GetOpen(market Market) (Market, error) {
-	market.OpenPrice = 1000
-	return market, nil
+func (f fake) GetOpen(id MarketID) (float64, error) {
+	return 1000, nil
 }
 
-func (f fake) GetLast(market Market) (Market, error) {
-	market.ActualPrice = 750
-	return market, nil
+func (f fake) GetLast(id MarketID) (float64, error) {
+	return 750, nil
 }
 
-func (f *fake) Listen(ctx context.Context, markets []Market, updateC chan<- []Market) error {
+func (f *fake) Listen(ctx context.Context, update chan<- Market) error {
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-time.After(time.Millisecond * 100):
-			for idx := range markets {
-				markets[idx].ActualPrice++
-				if markets[idx].ActualPrice/markets[idx].OpenPrice >= 2 {
-					markets[idx].ActualPrice = 750
+			for idx := range f.markets {
+				f.markets[idx].LastPrice++
+				if f.markets[idx].LastPrice/f.markets[idx].OpenPrice >= 2 {
+					f.markets[idx].LastPrice = 750
 				}
+				update <- f.markets[idx]
 			}
-			updateC <- markets
 		}
 	}
 }
 
 func NewFake() Exchange {
-	return newExchange(&fake{})
+	f := &fake{}
+	f.exchange = f
+	return f
 }

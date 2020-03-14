@@ -2,89 +2,92 @@ package exchange
 
 import (
 	"context"
-	"fmt"
-	"strings"
+	"os"
 	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
-type ExchangeAdapter interface {
-	Name() string
-	GetOpen(market Market) (Market, error)
-	GetLast(market Market) (Market, error)
-	Listen(ctx context.Context, markets []Market, updateC chan<- []Market) error
-}
-
 type Exchange interface {
-	Register(product string) error
-	Start(ctx context.Context, updateC chan<- []Market) error
+	Name() string
+	Register(id MarketID) error
+	GetMarkets() []Market
+	Update(id MarketID, market Market) error
+	Start(ctx context.Context, update chan<- Market) error
 }
 
-type exchange struct {
-	adapter ExchangeAdapter
-	markets []Market
+type ExchangeHelper interface {
+	Name() string
+	GetOpen(id MarketID) (float64, error)
+	GetLast(id MarketID) (float64, error)
+	Listen(ctx context.Context, update chan<- Market) error
 }
 
-func (e *exchange) Register(product string) error {
-	product = strings.ToLower(product)
+type helper struct {
+	exchange ExchangeHelper
+	markets  []Market
+}
 
-	pair := strings.Split(product, "-")
-	if len(pair) != 2 {
-		return fmt.Errorf("invalid product format")
+func (h *helper) Register(id MarketID) error {
+	openPrice, err := h.exchange.GetOpen(id)
+	if err != nil {
+		return err
+	}
+
+	lastPrice, err := h.exchange.GetLast(id)
+	if err != nil {
+		return err
 	}
 
 	market := Market{
-		ExchangeName:  e.adapter.Name(),
-		BaseCurrency:  pair[0],
-		QuoteCurrency: pair[1],
+		ExchangeName:  h.exchange.Name(),
+		BaseCurrency:  id.Base(),
+		QuoteCurrency: id.Quote(),
+		OpenPrice:     openPrice,
+		LastPrice:     lastPrice,
 	}
+	h.markets = append(h.markets, market)
 
-	market, err := e.adapter.GetOpen(market)
-	if err != nil {
-		return err
-	}
-
-	market, err = e.adapter.GetLast(market)
-	if err != nil {
-		return err
-	}
-
-	e.markets = append(e.markets, market)
 	return nil
 }
 
-func (e *exchange) Start(ctx context.Context, updateC chan<- []Market) error {
-	if len(e.markets) == 0 {
-		return nil
+func (h *helper) GetMarkets() []Market {
+	return h.markets
+}
+
+func (h *helper) Update(id MarketID, market Market) error {
+	found := false
+	for index, market := range h.markets {
+		if market.Base() == id.Base() && market.Quote() == id.Quote() {
+			h.markets[index] = market
+			found = true
+		}
 	}
 
+	if found == false {
+		return os.ErrNotExist
+	}
+	return nil
+}
+
+func (h *helper) Start(ctx context.Context, update chan<- Market) error {
 	// refresh open price every hour
 	runEvery(ctx, time.Hour, func() {
-		for idx := range e.markets {
-			market, err := e.adapter.GetOpen(e.markets[idx])
-			e.markets[idx] = market
+		for i, market := range h.markets {
+			openPrice, err := h.exchange.GetOpen(market)
 			if err != nil {
-				logrus.WithField("product", e.markets[idx]).WithError(err).Warn("cannot get daily open price")
+				logrus.WithField("product", h.markets[i]).WithError(err).Warn("cannot get daily open price")
 				continue
 			}
+			h.markets[i].OpenPrice = openPrice
 		}
 	})
 
 	// send the initial market state
-	updateC <- e.markets
+	for _, market := range h.markets {
+		update <- market
+	}
 
 	// start listening to price changes
-	err := e.adapter.Listen(ctx, e.markets, updateC)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func newExchange(adapter ExchangeAdapter) Exchange {
-	return &exchange{
-		adapter: adapter,
-	}
+	return h.exchange.Listen(ctx, update)
 }

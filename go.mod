@@ -11,5 +11,6 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.0.3
 	github.com/preichenberger/go-coinbasepro/v2 v2.0.5
 	github.com/sirupsen/logrus v1.4.2
+	github.com/spf13/cobra v0.0.6 // indirect
 	golang.org/x/text v0.3.2
 )

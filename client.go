@@ -1,4 +1,4 @@
-package cryptotracker
+package cryptoprice
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/u3mur4/crypto-price/cryptotracker/exchange"
-	"github.com/u3mur4/crypto-price/cryptotracker/format"
+	"github.com/u3mur4/crypto-price/exchange"
+	"github.com/u3mur4/crypto-price/format"
 )
 
 type Options struct {
@@ -29,7 +29,7 @@ type client struct {
 	exchanges map[string]func() exchange.Exchange // exchange name - exchange constructor
 	markets   map[string][]string                 // exchange name - markets
 	options   Options
-	updateC   chan []exchange.Market
+	update    chan exchange.Market
 	cancel    context.CancelFunc
 	formatter format.Formatter
 }
@@ -38,15 +38,12 @@ type client struct {
 func NewClient(options Options) Client {
 	return &client{
 		exchanges: map[string]func() exchange.Exchange{
-			"coinbase":  exchange.NewCoinbase,
-			"bittrex":   exchange.NewBittrex,
-			"binance":   exchange.NewBinance,
-			"cryptopia": exchange.NewCryptopia,
-			"fake":      exchange.NewFake,
+			"coinbase": exchange.NewCoinbase,
+			"fake":     exchange.NewFake,
 		},
 		markets:   make(map[string][]string),
 		options:   options,
-		updateC:   make(chan []exchange.Market, 10),
+		update:    make(chan exchange.Market, 1),
 		formatter: format.NewI3Bar(format.I3BarConfig{}),
 	}
 }
@@ -79,16 +76,14 @@ func (c *client) register(format string) error {
 
 func (c *client) applyOptions(m *exchange.Market) {
 	if c.options.ConvertToSatoshi && strings.EqualFold(m.Base(), "btc") {
-		m.ActualPrice *= 1e8
+		m.LastPrice *= 1e8
 		m.OpenPrice *= 1e8
 	}
 }
 
-func (c *client) showMarket(markets []exchange.Market) {
-	for _, market := range markets {
-		c.applyOptions(&market)
-		c.formatter.Show(market)
-	}
+func (c *client) showMarket(market exchange.Market) {
+	c.applyOptions(&market)
+	c.formatter.Show(market)
 }
 
 func (c *client) startExchange(ctx context.Context, name string) error {
@@ -97,15 +92,28 @@ func (c *client) startExchange(ctx context.Context, name string) error {
 		return fmt.Errorf("exchange not found")
 	}
 
-	exchange := createExchange()
-	for _, market := range c.markets[name] {
-		err := exchange.Register(market)
+	ex := createExchange()
+	for _, marketName := range c.markets[name] {
+		marketName = strings.ToLower(marketName)
+
+		pair := strings.Split(marketName, "-")
+		if len(pair) != 2 {
+			return fmt.Errorf("invalid product format")
+		}
+
+		market := exchange.Market{
+			ExchangeName:  ex.Name(),
+			BaseCurrency:  pair[0],
+			QuoteCurrency: pair[1],
+		}
+
+		err := ex.Register(market)
 		if err != nil {
 			return err
 		}
 	}
 
-	return exchange.Start(ctx, c.updateC)
+	return ex.Start(ctx, c.update)
 }
 
 func (c *client) startAllExchange() error {
@@ -131,8 +139,8 @@ func (c *client) startAllExchange() error {
 		select {
 		case err := <-errC:
 			return err
-		case markets := <-c.updateC:
-			c.showMarket(markets)
+		case market := <-c.update:
+			c.showMarket(market)
 		}
 	}
 }

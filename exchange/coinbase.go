@@ -2,83 +2,84 @@ package exchange
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	ws "github.com/gorilla/websocket"
-	gdax "github.com/preichenberger/go-gdax"
+	"github.com/preichenberger/go-coinbasepro/v2"
 )
 
 var coinbaseAPI = "https://api.pro.coinbase.com"
 
 type coinbase struct {
+	helper
 }
 
 func (c coinbase) Name() string {
 	return "coinbase"
 }
 
-func (c coinbase) marketToSymbol(market Market) string {
-	return market.Quote() + "-" + market.Base()
+func (c coinbase) marketIDToSymbol(id MarketID) string {
+	return id.Base() + "-" + id.Quote()
 }
 
 // Gets the daily open price using the http api
-func (c coinbase) GetOpen(market Market) (Market, error) {
-	day := time.Now().UTC().Truncate(time.Hour * 24)
-	start := day.Add(time.Minute * -5).Format(time.RFC3339)
-	end := day.Format(time.RFC3339)
-	granularity := 300
-
-	url := fmt.Sprintf("%s/products/%s/candles?start=%s&end=%s&granularity=%d", coinbaseAPI, c.marketToSymbol(market), start, end, granularity)
-	response := [][]float64{}
-	err := httpGetJSON(url, &response)
+func (c coinbase) GetOpen(id MarketID) (float64, error) {
+	client := coinbasepro.NewClient()
+	stat, err := client.GetStats(c.marketIDToSymbol(id))
 	if err != nil {
-		return market, err
+		return 0, err
 	}
-	// [ time, low, high, open, close, volume ]
-	market.OpenPrice = response[0][4]
-	return market, nil
+
+	price, err := strconv.ParseFloat(stat.Open, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return price, nil
 }
 
-func (c coinbase) GetLast(market Market) (Market, error) {
-	url := fmt.Sprintf("%s/products/%s/ticker", coinbaseAPI, c.marketToSymbol(market))
-	response := struct {
-		Price string `json:"price"`
-	}{}
-	err := httpGetJSON(url, &response)
+func (c coinbase) GetLast(id MarketID) (float64, error) {
+	client := coinbasepro.NewClient()
+	stat, err := client.GetStats(c.marketIDToSymbol(id))
 	if err != nil {
-		return market, err
+		return 0, err
 	}
 
-	price, err := strconv.ParseFloat(response.Price, 64)
+	price, err := strconv.ParseFloat(stat.Last, 64)
 	if err != nil {
-		return market, err
+		return 0, err
 	}
 
-	market.ActualPrice = price
-	return market, nil
+	return price, nil
 }
 
-func (c coinbase) Listen(ctx context.Context, markets []Market, updateC chan<- []Market) error {
+func (c coinbase) Listen(ctx context.Context, update chan<- Market) error {
+	if len(c.markets) == 0 {
+		return nil
+	}
+
 	// receive any price change using websockets
 	var wsDialer ws.Dialer
-	wsConn, _, err := wsDialer.Dial("wss://ws-feed.gdax.com", nil)
+	wsConn, _, err := wsDialer.Dial("wss://ws-feed.pro.coinbase.com", nil)
 	if err != nil {
 		return err
 	}
 
 	productIDs := []string{}
-	for _, market := range markets {
-		productIDs = append(productIDs, c.marketToSymbol(market))
+	for _, market := range c.markets {
+		productIDs = append(productIDs, strings.ToUpper(c.marketIDToSymbol(market)))
 	}
 
-	subscribe := gdax.Message{
+	subscribe := coinbasepro.Message{
 		Type: "subscribe",
-		Channels: []gdax.MessageChannel{
-			gdax.MessageChannel{
-				Name:       "matches",
+		Channels: []coinbasepro.MessageChannel{
+			coinbasepro.MessageChannel{
+				Name:       "heartbeat",
+				ProductIds: productIDs,
+			},
+			coinbasepro.MessageChannel{
+				Name:       "ticker",
 				ProductIds: productIDs,
 			},
 		},
@@ -88,11 +89,11 @@ func (c coinbase) Listen(ctx context.Context, markets []Market, updateC chan<- [
 		return err
 	}
 
-	messageC := make(chan gdax.Message)
+	messageC := make(chan coinbasepro.Message)
 	errC := make(chan error)
 	go func() {
 		for {
-			message := gdax.Message{}
+			message := coinbasepro.Message{}
 			if err := wsConn.ReadJSON(&message); err != nil {
 				errC <- err
 				return
@@ -110,11 +111,15 @@ func (c coinbase) Listen(ctx context.Context, markets []Market, updateC chan<- [
 			wsConn.Close()
 			return err
 		case message := <-messageC:
-			if message.Type == "match" {
-				for idx := range markets {
-					if strings.EqualFold(c.marketToSymbol(markets[idx]), message.ProductId) {
-						markets[idx].ActualPrice = message.Price
-						updateC <- markets
+			if message.Type == "ticker" {
+				for index := range c.markets {
+					if strings.EqualFold(c.marketIDToSymbol(c.markets[index]), message.ProductID) {
+						price, err := strconv.ParseFloat(message.Price, 64)
+						if err != nil {
+							continue
+						}
+						c.markets[index].LastPrice = price
+						update <- c.markets[index]
 					}
 				}
 			}
@@ -124,5 +129,7 @@ func (c coinbase) Listen(ctx context.Context, markets []Market, updateC chan<- [
 
 // NewCoinbase tracks a product on gdax/coinbase exchange
 func NewCoinbase() Exchange {
-	return newExchange(coinbase{})
+	c := &coinbase{}
+	c.exchange = c
+	return c
 }

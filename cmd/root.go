@@ -1,15 +1,14 @@
-package cmd
+package main
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/u3mur4/crypto-price/cryptotracker/format"
-
 	"github.com/sirupsen/logrus"
-
 	"github.com/spf13/cobra"
-	"github.com/u3mur4/crypto-price/cryptotracker"
+
+	cryptoprice "github.com/u3mur4/crypto-price"
+	"github.com/u3mur4/crypto-price/format"
 )
 
 var flags = struct {
@@ -37,7 +36,7 @@ var rootCmd = &cobra.Command{
 		} else {
 			logrus.SetLevel(logrus.ErrorLevel)
 		}
-		c := cryptotracker.NewClient(cryptotracker.Options{
+		c := cryptoprice.NewClient(cryptoprice.Options{
 			ConvertToSatoshi: flags.Satoshi,
 		})
 
