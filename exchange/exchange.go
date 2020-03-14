@@ -8,23 +8,33 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Exchange listens for price changes in realtime
 type Exchange interface {
+	// Name of the exchange
 	Name() string
+	// Register a market to listen for price changes
 	Register(id MarketID) error
+	// GetMarkets returns all registered markets
 	GetMarkets() []Market
+	// Update a market
 	Update(id MarketID, market Market) error
+	// Start listening for price changes in the registered markets
 	Start(ctx context.Context, update chan<- Market) error
 }
 
-type ExchangeHelper interface {
+type exchangeHelper interface {
+	// Name of the exchange
 	Name() string
+	// Return the open price of the market
 	GetOpen(id MarketID) (float64, error)
+	// Return the last price of the market
 	GetLast(id MarketID) (float64, error)
+	// Start listening for price changes in the registered markets
 	Listen(ctx context.Context, update chan<- Market) error
 }
 
 type helper struct {
-	exchange ExchangeHelper
+	exchange exchangeHelper
 	markets  []Market
 }
 
@@ -58,7 +68,7 @@ func (h *helper) GetMarkets() []Market {
 func (h *helper) Update(id MarketID, market Market) error {
 	found := false
 	for index, market := range h.markets {
-		if market.Base() == id.Base() && market.Quote() == id.Quote() {
+		if market.BaseCurrency == id.Base() && market.QuoteCurrency == id.Quote() {
 			h.markets[index] = market
 			found = true
 		}
@@ -71,8 +81,8 @@ func (h *helper) Update(id MarketID, market Market) error {
 }
 
 func (h *helper) Start(ctx context.Context, update chan<- Market) error {
-	// refresh open price every hour
-	runEvery(ctx, time.Hour, func() {
+	// refresh open price every *
+	runEvery(ctx, time.Minute*15, func() {
 		for i, market := range h.markets {
 			openPrice, err := h.exchange.GetOpen(market)
 			if err != nil {

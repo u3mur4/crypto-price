@@ -1,10 +1,12 @@
 package exchange
 
+// MarketID identify a specific market
 type MarketID interface {
 	Base() string
 	Quote() string
 }
 
+// Market
 type Market struct {
 	BaseCurrency  string
 	QuoteCurrency string

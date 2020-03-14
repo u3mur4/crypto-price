@@ -38,6 +38,7 @@ func (f *fake) Listen(ctx context.Context, update chan<- Market) error {
 	}
 }
 
+// NewFake returns a test exchange
 func NewFake() Exchange {
 	f := &fake{}
 	f.exchange = f

@@ -23,7 +23,6 @@ func (c coinbase) marketIDToSymbol(id MarketID) string {
 	return id.Base() + "-" + id.Quote()
 }
 
-// Gets the daily open price using the http api
 func (c coinbase) GetOpen(id MarketID) (float64, error) {
 	client := coinbasepro.NewClient()
 	stat, err := client.GetStats(c.marketIDToSymbol(id))
