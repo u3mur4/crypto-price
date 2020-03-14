@@ -78,7 +78,7 @@ func (i *i3BarFormat) formatPrice(market Market) string {
 }
 
 func (i *i3BarFormat) getIcon(market Market) string {
-	name := strings.ToUpper(market.Quote())
+	name := strings.ToUpper(market.Base())
 
 	if icon, ok := i3BarIcons[name+"-alt"]; ok {
 		return icon
@@ -121,7 +121,7 @@ func (i *i3BarFormat) Show(m Market) {
 		if i.config.Icon && icon != "" {
 			i.printer.Fprintf(i.Output, "<span font='cryptocoins' foreground='%s'>%s</span><span>: </span>", color(market).Hex(), icon)
 		} else {
-			i.printer.Fprintf(i.Output, "<span foreground='%s'>%s: </span>", color(market).Hex(), strings.ToUpper(market.Quote()))
+			i.printer.Fprintf(i.Output, "<span foreground='%s'>%s: </span>", color(market).Hex(), strings.ToUpper(market.Base()))
 		}
 		i.printer.Fprintf(i.Output, "<span foreground='%s'>%s%s (%+.1f%%)</span> ", color(market).Hex(), price, base, percent(market))
 	}

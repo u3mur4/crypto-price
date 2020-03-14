@@ -39,6 +39,7 @@ func NewClient(options Options) Client {
 	return &client{
 		exchanges: map[string]func() exchange.Exchange{
 			"coinbase": exchange.NewCoinbase,
+			"bittrex":  exchange.NewBittrex,
 			"fake":     exchange.NewFake,
 		},
 		markets:   make(map[string][]string),
@@ -75,7 +76,7 @@ func (c *client) register(format string) error {
 }
 
 func (c *client) applyOptions(m *exchange.Market) {
-	if c.options.ConvertToSatoshi && strings.EqualFold(m.Base(), "btc") {
+	if c.options.ConvertToSatoshi && strings.EqualFold(m.Quote(), "btc") {
 		m.LastPrice *= 1e8
 		m.OpenPrice *= 1e8
 	}
@@ -124,41 +125,37 @@ func (c *client) startAllExchange() error {
 	defer cancel()
 	c.cancel = cancel
 
-	errC := make(chan error)
-
 	for name := range c.markets {
 		go func(name string) {
-			err := c.startExchange(ctx, name)
-			if err != nil {
-				errC <- err
+			bf := backoff.NewExponentialBackOff()
+			for {
+				err := c.startExchange(ctx, name)
+				if err != nil {
+					logrus.WithError(err).WithField("name", name).Error("exchange stoped")
+				}
+				if bf.GetElapsedTime() >= time.Minute {
+					bf.Reset()
+				}
+				wait := bf.NextBackOff()
+				logrus.WithField("duration", wait).Info("wait to restart")
+				time.Sleep(wait)
 			}
 		}(name)
 	}
 
-	for {
-		select {
-		case err := <-errC:
-			return err
-		case market := <-c.update:
-			c.showMarket(market)
-		}
+	for market := range c.update {
+		c.showMarket(market)
 	}
+
+	return nil
 }
 
 func (c *client) Start() {
-	bf := backoff.NewExponentialBackOff()
 	for {
 		err := c.startAllExchange()
 		if err != nil {
 			logrus.WithError(err).Error("exchanges stoped")
 		}
-
-		if bf.GetElapsedTime() >= time.Minute {
-			bf.Reset()
-		}
-		wait := bf.NextBackOff()
-		logrus.WithField("duration", wait).Info("wait to restart")
-		time.Sleep(wait)
 	}
 }
 
