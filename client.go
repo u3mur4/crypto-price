@@ -40,6 +40,7 @@ func NewClient(options Options) Client {
 		exchanges: map[string]func() exchange.Exchange{
 			"coinbase": exchange.NewCoinbase,
 			"bittrex":  exchange.NewBittrex,
+			"binance":  exchange.NewBinance,
 			"fake":     exchange.NewFake,
 		},
 		markets:   make(map[string][]string),
