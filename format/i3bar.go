@@ -91,7 +91,7 @@ func (i *i3BarFormat) getIcon(market Market) string {
 }
 
 func (i *i3BarFormat) Show(m Market) {
-	key := m.Base() + m.Quote()
+	key := m.Exchange() + m.Base() + m.Quote()
 
 	// keep output consistent
 	if _, ok := i.markets[key]; !ok {
