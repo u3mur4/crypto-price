@@ -38,7 +38,6 @@ type client struct {
 func NewClient(options Options) Client {
 	return &client{
 		exchanges: map[string]func() exchange.Exchange{
-			"coinbase": exchange.NewCoinbase,
 			"bittrex":  exchange.NewBittrex,
 			"binance":  exchange.NewBinance,
 			"fake":     exchange.NewFake,
