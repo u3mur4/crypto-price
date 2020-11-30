@@ -2,7 +2,6 @@ package exchange
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -14,10 +13,6 @@ type Exchange interface {
 	Name() string
 	// Register a market to listen for price changes
 	Register(id MarketID) error
-	// GetMarkets returns all registered markets
-	GetMarkets() []Market
-	// Update a market
-	Update(id MarketID, market Market) error
 	// Start listening for price changes in the registered markets
 	Start(ctx context.Context, update chan<- Market) error
 }
@@ -58,25 +53,6 @@ func (h *helper) Register(id MarketID) error {
 	}
 	h.markets = append(h.markets, market)
 
-	return nil
-}
-
-func (h *helper) GetMarkets() []Market {
-	return h.markets
-}
-
-func (h *helper) Update(id MarketID, market Market) error {
-	found := false
-	for index, market := range h.markets {
-		if market.BaseCurrency == id.Base() && market.QuoteCurrency == id.Quote() {
-			h.markets[index] = market
-			found = true
-		}
-	}
-
-	if found == false {
-		return os.ErrNotExist
-	}
 	return nil
 }
 
