@@ -1,6 +1,9 @@
 package format
 
-import colorful "github.com/lucasb-eyer/go-colorful"
+import (
+	colorful "github.com/lucasb-eyer/go-colorful"
+	"github.com/u3mur4/crypto-price/exchange"
+)
 
 // ColorMap contains that at specifix position what color should be used
 // It is interpolating colors between positions
@@ -42,4 +45,8 @@ var defaultColorMap = colorMap{
 	{mustParseHex("#00d800"), +7.0},
 	{mustParseHex("#009700"), +10.0},
 	{mustParseHex("#007600"), +100.0},
+}
+
+func color(candle exchange.Candle) colorful.Color {
+	return defaultColorMap.getInterpolatedColorFor(candle.Percent())
 }

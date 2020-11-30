@@ -50,17 +50,10 @@ var rootCmd = &cobra.Command{
 
 		if flags.JSON {
 			c.SetFormatter(format.NewJSON())
-		} else if flags.JSONLine {
-			c.SetFormatter(format.NewJSONLine())
 		} else if flags.Server {
 			c.SetFormatter(format.NewServer())
 		} else if flags.Template != "" {
 			c.SetFormatter(format.NewTemplate(flags.Template))
-		} else if flags.I3Bar {
-			c.SetFormatter(format.NewI3Bar(format.I3BarConfig{
-				Sort: flags.I3BarSort,
-				Icon: flags.I3BarIcon,
-			}))
 		} else if flags.Polybar {
 			c.SetFormatter(format.NewPolybar(format.PolybarConfig{
 				Sort: flags.PolybarSort,

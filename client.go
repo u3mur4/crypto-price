@@ -29,7 +29,7 @@ type client struct {
 	exchanges map[string]func() exchange.Exchange // exchange name - exchange constructor
 	markets   map[string][]string                 // exchange name - markets
 	options   Options
-	update    chan exchange.Market
+	update    chan exchange.Chart
 	cancel    context.CancelFunc
 	formatter format.Formatter
 }
@@ -38,14 +38,14 @@ type client struct {
 func NewClient(options Options) Client {
 	return &client{
 		exchanges: map[string]func() exchange.Exchange{
-			"bittrex":  exchange.NewBittrex,
+			// "bittrex":  exchange.NewBittrex,
 			"binance":  exchange.NewBinance,
 			"fake":     exchange.NewFake,
 		},
 		markets:   make(map[string][]string),
 		options:   options,
-		update:    make(chan exchange.Market, 1),
-		formatter: format.NewI3Bar(format.I3BarConfig{}),
+		update:    make(chan exchange.Chart, 1),
+		formatter: format.NewPolybar(format.PolybarConfig{}),
 	}
 }
 
@@ -75,16 +75,15 @@ func (c *client) register(format string) error {
 	return nil
 }
 
-func (c *client) applyOptions(m *exchange.Market) {
-	if c.options.ConvertToSatoshi && strings.EqualFold(m.Quote(), "btc") {
-		m.LastPrice *= 1e8
-		m.OpenPrice *= 1e8
+func (c *client) applyOptions(m *exchange.Chart) {
+	if c.options.ConvertToSatoshi && strings.EqualFold(m.Quote, "btc") {
+		m.Candle = m.Candle.ToSatoshi()
 	}
 }
 
-func (c *client) showMarket(market exchange.Market) {
-	c.applyOptions(&market)
-	c.formatter.Show(market)
+func (c *client) showMarket(chart exchange.Chart) {
+	c.applyOptions(&chart)
+	c.formatter.Show(chart)
 }
 
 func (c *client) startExchange(ctx context.Context, name string) error {
@@ -102,13 +101,7 @@ func (c *client) startExchange(ctx context.Context, name string) error {
 			return fmt.Errorf("invalid product format")
 		}
 
-		market := exchange.Market{
-			ExchangeName:  ex.Name(),
-			BaseCurrency:  pair[0],
-			QuoteCurrency: pair[1],
-		}
-
-		err := ex.Register(market)
+		err := ex.Register(pair[0], pair[1], time.Hour*24)
 		if err != nil {
 			return err
 		}

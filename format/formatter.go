@@ -1,8 +1,10 @@
 package format
 
+import "github.com/u3mur4/crypto-price/exchange"
+
 // Formatter displays the markets to the user
 type Formatter interface {
 	Open()
-	Show(m Market)
+	Show(chart exchange.Chart)
 	Close()
 }

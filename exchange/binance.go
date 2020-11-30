@@ -5,65 +5,73 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	binancelib "github.com/adshao/go-binance"
 	"github.com/sirupsen/logrus"
 )
 
 type binance struct {
-	helper
+	exchangeHelper
 	client *binancelib.Client
 }
 
-func (b binance) Name() string {
-	return "binance"
+func (b binance) getChartTicker(chart *Chart) string {
+	return strings.ToUpper(chart.Base + chart.Quote)
 }
 
-func (b binance) marketToSymbol(id MarketID) string {
-	return strings.ToUpper(id.Base() + id.Quote())
+func (b binance) getIntervalString(chart *Chart) string {
+	if chart.Interval <= time.Minute {
+		return "1m"
+	} else if chart.Interval <= time.Minute*5 {
+		return "5m"
+	} else if chart.Interval <= time.Minute*15 {
+		return "15m"
+	} else if chart.Interval <= time.Minute*30 {
+		return "30m"
+	} else if chart.Interval <= time.Minute*60 {
+		return "1h"
+	} else if chart.Interval <= time.Hour*4 {
+		return "4h"
+	} else {
+		return "1d"
+	}
 }
 
-func (b binance) GetOpen(id MarketID) (float64, error) {
-	resp, err := b.client.NewListPriceChangeStatsService().Symbol(b.marketToSymbol(id)).Do(context.Background())
+func (b binance) initCandle(chart *Chart) error {
+	kline := b.client.NewKlinesService()
+	kline = kline.Symbol(b.getChartTicker(chart)).Interval(b.getIntervalString(chart)).Limit(1)
+	result, err := kline.Do(context.Background())
 	if err != nil {
-		return 0, err
+		return err
 	}
-
-	price, err := strconv.ParseFloat(resp[0].OpenPrice, 64)
-	if err != nil {
-		return 0, err
-	}
-
-	return price, nil
+	chart.Candle.High, _ = strconv.ParseFloat(result[0].High, 64)
+	chart.Candle.Open, _ = strconv.ParseFloat(result[0].Open, 64)
+	chart.Candle.Close, _ = strconv.ParseFloat(result[0].Close, 64)
+	chart.Candle.Low, _ = strconv.ParseFloat(result[0].Low, 64)
+	return nil
 }
 
-// Gets the actual price using the http api
-func (b binance) GetLast(id MarketID) (float64, error) {
-	resp, err := b.client.NewListPriceChangeStatsService().Symbol(b.marketToSymbol(id)).Do(context.Background())
-	if err != nil {
-		return 0, err
+func (b *binance) Start(ctx context.Context, update chan<- Chart) error {
+	for _, chart := range b.charts {
+		b.initCandle(chart)
+		update <- *chart
+		runEvery(context.Background(), chart.Interval, func() {
+			b.initCandle(chart)
+		})
 	}
 
-	price, err := strconv.ParseFloat(resp[0].LastPrice, 64)
-	if err != nil {
-		return 0, err
-	}
-
-	return price, nil
-}
-
-func (b *binance) Listen(ctx context.Context, update chan<- Market) error {
 	miniHandler := func(event binancelib.WsAllMiniMarketsStatEvent) {
 		for _, marketEvent := range event {
-			for idx := range b.markets {
-				if strings.EqualFold(b.marketToSymbol(b.markets[idx]), marketEvent.Symbol) {
+			for _, chart := range b.charts {
+				if strings.EqualFold(b.getChartTicker(chart), marketEvent.Symbol) {
 					price, err := strconv.ParseFloat(marketEvent.LastPrice, 64)
 					if err != nil {
 						logrus.WithError(err).WithField("market", marketEvent.Symbol).Error("cannot parse price")
 						continue
 					}
-					b.markets[idx].LastPrice = price
-					update <- b.markets[idx]
+					chart.Candle.Update(price)
+					update <- *chart
 				}
 			}
 		}
@@ -92,9 +100,10 @@ func (b *binance) Listen(ctx context.Context, update chan<- Market) error {
 }
 
 func NewBinance() Exchange {
-	b := &binance{
+	return &binance{
+		exchangeHelper: exchangeHelper{
+			name: "binance",
+		},
 		client: binancelib.NewClient("", ""),
 	}
-	b.exchange = b
-	return b
 }

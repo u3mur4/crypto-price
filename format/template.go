@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/alecthomas/template"
+	"github.com/u3mur4/crypto-price/exchange"
 )
 
 type templateFormat struct {
@@ -22,8 +23,8 @@ func NewTemplate(format string) Formatter {
 
 func (t templateFormat) Open() {}
 
-func (t templateFormat) Show(m Market) {
-	t.Template.Execute(t.Output, m)
+func (t templateFormat) Show(chart exchange.Chart) {
+	t.Template.Execute(t.Output, chart)
 }
 
 func (t templateFormat) Close() {}

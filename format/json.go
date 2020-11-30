@@ -5,21 +5,31 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
+
+	"github.com/u3mur4/crypto-price/exchange"
 )
+
+type jsonCandle struct {
+	High    float64 `json:"high"`
+	Open    float64 `json:"open"`
+	Close   float64 `json:"close"`
+	Low     float64 `json:"low"`
+	Percent float64 `json:"percent"`
+	Color   string  `json:"color"`
+}
+
+type jsonChart struct {
+	Exchange string        `json:"exchange"`
+	Base     string        `json:"base"`
+	Quote    string        `json:"quote"`
+	Interval time.Duration `json:"interval"`
+	Candles  jsonCandle    `json:"candles"`
+}
 
 type jsonFormat struct {
 	Output io.Writer
 	first  bool
-}
-
-type jsonMarket struct {
-	Exchange string  `json:"exchange"`
-	Base     string  `json:"base"`
-	Quote    string  `json:"quote"`
-	Open     float64 `json:"open"`
-	Price    float64 `json:"price"`
-	Percent  float64 `json:"percent"`
-	Color    string  `json:"color"`
 }
 
 // NewJSON displays the market as json format
@@ -30,17 +40,27 @@ func NewJSON() Formatter {
 	}
 }
 
-func (j *jsonFormat) Open() { fmt.Fprintf(j.Output, "[") }
+func (j *jsonFormat) Open() {}
 
-func (j *jsonFormat) Show(m Market) {
-	b, _ := json.Marshal(&jsonMarket{
-		Exchange: m.Exchange(),
-		Base:     m.Base(),
-		Quote:    m.Quote(),
-		Open:     m.Open(),
-		Price:    m.Price(),
-		Percent:  percent(m),
-		Color:    color(m).Hex(),
+func convertCandles(candle exchange.Candle) (newCandles jsonCandle) {
+	return jsonCandle{
+		High:    candle.High,
+		Open:    candle.Open,
+		Close:   candle.Close,
+		Low:     candle.Low,
+		Percent: candle.Percent(),
+		Color:   color(candle).Hex(),
+	}
+	return
+}
+
+func (j *jsonFormat) Show(chart exchange.Chart) {
+	b, _ := json.Marshal(&jsonChart{
+		Exchange: chart.Exchange,
+		Base:     chart.Base,
+		Quote:    chart.Quote,
+		Interval: chart.Interval,
+		Candles:  convertCandles(chart.Candle),
 	})
 
 	format := ",\n%s"
@@ -52,4 +72,4 @@ func (j *jsonFormat) Show(m Market) {
 	fmt.Fprintf(j.Output, format, string(b))
 }
 
-func (j *jsonFormat) Close() { fmt.Fprintf(j.Output, "]\n") }
+func (j *jsonFormat) Close() {}

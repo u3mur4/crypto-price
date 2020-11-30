@@ -2,37 +2,33 @@ package exchange
 
 import (
 	"context"
+	"math/rand"
 	"time"
 )
 
 type fake struct {
-	helper
+	exchangeHelper
 }
 
-func (f fake) Name() string {
-	return "fake"
-}
+func (f *fake) Start(ctx context.Context, update chan<- Chart) error {
+	for _, chart := range f.charts {
+		chart.Candle.High = float64(rand.Int31n(1000) + 1000 )
+		chart.Candle.Open = float64(rand.Int31n(1000))
+		chart.Candle.Low = float64(rand.Int31n(1000))
+		chart.Candle.Update(float64(rand.Int31n(1000)))
+	}
 
-func (f fake) GetOpen(id MarketID) (float64, error) {
-	return 1000, nil
-}
-
-func (f fake) GetLast(id MarketID) (float64, error) {
-	return 750, nil
-}
-
-func (f *fake) Listen(ctx context.Context, update chan<- Market) error {
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-time.After(time.Millisecond * 100):
-			for idx := range f.markets {
-				f.markets[idx].LastPrice++
-				if f.markets[idx].LastPrice/f.markets[idx].OpenPrice >= 2 {
-					f.markets[idx].LastPrice = 750
+			for _, chart := range f.charts {
+				chart.Candle.Update(chart.Candle.Close + 1)
+				if chart.Candle.Percent() > 100 {
+					chart.Candle.Close = chart.Candle.Open
 				}
-				update <- f.markets[idx]
+				update <- *chart
 			}
 		}
 	}
@@ -40,7 +36,9 @@ func (f *fake) Listen(ctx context.Context, update chan<- Market) error {
 
 // NewFake returns a test exchange
 func NewFake() Exchange {
-	f := &fake{}
-	f.exchange = f
-	return f
+	return &fake{
+		exchangeHelper: exchangeHelper{
+			name: "fake",
+		},
+	}
 }

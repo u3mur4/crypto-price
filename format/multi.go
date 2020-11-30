@@ -1,5 +1,7 @@
 package format
 
+import "github.com/u3mur4/crypto-price/exchange"
+
 type multiFormat struct {
 	formatters []Formatter
 }
@@ -16,9 +18,9 @@ func (m multiFormat) Open() {
 	}
 }
 
-func (m multiFormat) Show(market Market) {
+func (m multiFormat) Show(chart exchange.Chart) {
 	for _, f := range m.formatters {
-		f.Show(market)
+		f.Show(chart)
 	}
 }
 
