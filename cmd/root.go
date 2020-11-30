@@ -12,15 +12,18 @@ import (
 )
 
 var flags = struct {
-	Format    string
-	Template  string
-	Satoshi   bool
-	I3Bar     bool
-	I3BarSort string
-	I3BarIcon bool
-	JSON      bool
-	JSONLine  bool
-	Debug     bool
+	Format      string
+	Template    string
+	Satoshi     bool
+	I3Bar       bool
+	I3BarSort   string
+	I3BarIcon   bool
+	Polybar     bool
+	PolybarSort string
+	JSON        bool
+	JSONLine    bool
+	Server      bool
+	Debug       bool
 	// Throotle    float64
 }{}
 
@@ -36,6 +39,11 @@ var rootCmd = &cobra.Command{
 		} else {
 			logrus.SetLevel(logrus.ErrorLevel)
 		}
+
+		f, _ := os.Create("/tmp/crypto-tracker.log")
+		logrus.SetOutput(f)
+		logrus.SetLevel(logrus.DebugLevel)
+
 		c := cryptoprice.NewClient(cryptoprice.Options{
 			ConvertToSatoshi: flags.Satoshi,
 		})
@@ -44,12 +52,19 @@ var rootCmd = &cobra.Command{
 			c.SetFormatter(format.NewJSON())
 		} else if flags.JSONLine {
 			c.SetFormatter(format.NewJSONLine())
+		} else if flags.Server {
+			c.SetFormatter(format.NewServer())
 		} else if flags.Template != "" {
 			c.SetFormatter(format.NewTemplate(flags.Template))
 		} else if flags.I3Bar {
 			c.SetFormatter(format.NewI3Bar(format.I3BarConfig{
 				Sort: flags.I3BarSort,
 				Icon: flags.I3BarIcon,
+			}))
+		} else if flags.Polybar {
+			c.SetFormatter(format.NewPolybar(format.PolybarConfig{
+				Sort: flags.PolybarSort,
+				Icon: false,
 			}))
 		}
 
@@ -80,9 +95,16 @@ func init() {
 
 	// format flags
 	rootCmd.Flags().StringVarP(&flags.Template, "template", "t", "", "golang template format")
-	rootCmd.Flags().BoolVar(&flags.I3Bar, "i3bar", true, "i3bar format")
+
+	rootCmd.Flags().BoolVar(&flags.Server, "server", false, "start a http server")
+
+	rootCmd.Flags().BoolVar(&flags.I3Bar, "i3bar", false, "i3bar format")
 	rootCmd.Flags().BoolVar(&flags.I3BarIcon, "i3bar-icon", false, "Enable icons. (https://github.com/AllienWorks/cryptocoins)")
 	rootCmd.Flags().StringVar(&flags.I3BarSort, "i3bar-sort", "keep", "sort markets by change. values: keep, inc, dec")
+
+	rootCmd.Flags().BoolVar(&flags.Polybar, "polybar", true, "polybar format")
+	rootCmd.Flags().StringVar(&flags.PolybarSort, "polybar-sort", "keep", "sort markets by change. values: keep, inc, dec")
+
 	rootCmd.Flags().BoolVar(&flags.JSON, "json", false, "json format")
 	rootCmd.Flags().BoolVar(&flags.JSONLine, "jsonl", false, "json line format")
 }

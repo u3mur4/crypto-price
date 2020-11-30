@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"sort"
-	"strconv"
 	"strings"
 
+	"github.com/sirupsen/logrus"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )
@@ -52,29 +53,45 @@ func NewI3Bar(config I3BarConfig) Formatter {
 	}
 }
 
-func (i i3BarFormat) Open() {}
-
-func (i *i3BarFormat) formatBase(market Market) string {
-	if strings.EqualFold(market.Base(), "btc") {
-		if market.Price() < 0.1 {
-			return "Ƀ"
-		} else {
-			return "" // symbol for satoshi
+func (i i3BarFormat) Open() {
+	// handle user input
+	go func() {
+		for {
+			var input string
+			_, err := fmt.Scanln(&input)
+			if err != nil {
+				break
+			}
+			logrus.WithField("input", input).Debug("new i3 input")
+			// left click
+			if input == "1" {
+				fmt.Println("<span>UPDATE</span>")
+				cmd := exec.Command("chromium", "--new-tab")
+				cmd.Run()
+			}
 		}
-	} else if strings.EqualFold(market.Base(), "usd") {
+	}()
+}
+
+func (i *i3BarFormat) formatQuote(market Market) string {
+	if strings.EqualFold(market.Quote(), "btc") {
+		return "Ƀ"
+	} else if strings.EqualFold(market.Quote(), "usd") {
 		return "$"
-	} else if strings.EqualFold(market.Base(), "eur") {
+	} else if strings.EqualFold(market.Quote(), "eur") {
 		return "€"
 	}
 	return ""
 }
 
 func (i *i3BarFormat) formatPrice(market Market) string {
-	prec := -1
-	if market.Price() < 0.1 {
-		prec = 8
+	if strings.EqualFold(market.Quote(), "btc") {
+		if market.Price() < 1 {
+			return fmt.Sprintf("%.8f", market.Price())
+		}
+		return fmt.Sprintf("%.0f", market.Price())
 	}
-	return strconv.FormatFloat(market.Price(), 'f', prec, 32)
+	return fmt.Sprintf("%.2f", market.Price())
 }
 
 func (i *i3BarFormat) getIcon(market Market) string {
@@ -96,7 +113,13 @@ func (i *i3BarFormat) Show(m Market) {
 	// keep output consistent
 	if _, ok := i.markets[key]; !ok {
 		i.keys = append(i.keys, key)
+	} else {
+		// do not update if the price is the same
+		if i.markets[key].Price() == m.Price() {
+			return
+		}
 	}
+
 	i.markets[key] = m
 
 	// sort key by change if required
@@ -111,24 +134,38 @@ func (i *i3BarFormat) Show(m Market) {
 		sort.Sort(&s)
 	}
 
+	// format all market
+	builder := strings.Builder{}
 	for _, k := range i.keys {
 		market := i.markets[k]
 
 		price := i.formatPrice(market)
-		base := i.formatBase(market)
+		quote := i.formatQuote(market)
 		icon := i.getIcon(market)
 
+		// use icon or the base
 		if i.config.Icon && icon != "" {
-			i.printer.Fprintf(i.Output, "<span font='cryptocoins' foreground='%s'>%s</span><span>: </span>", color(market).Hex(), icon)
+			tmp := fmt.Sprintf("<span font='cryptocoins' foreground='%s'>%s</span><span>: </span>", color(market).Hex(), icon)
+			builder.WriteString(tmp)
 		} else {
-			i.printer.Fprintf(i.Output, "<span foreground='%s'>%s: </span>", color(market).Hex(), strings.ToUpper(market.Base()))
+			tmp := fmt.Sprintf("<span foreground='%s'>%s: </span>", color(market).Hex(), strings.ToUpper(market.Base()))
+			builder.WriteString(tmp)
 		}
-		i.printer.Fprintf(i.Output, "<span foreground='%s'>%s%s (%+.1f%%)</span> ", color(market).Hex(), price, base, percent(market))
+
+		// print price
+		tmp := fmt.Sprintf("<span foreground='%s'>%s%s (%+.1f%%)</span> ", color(market).Hex(), price, quote, percent(market))
+		builder.WriteString(tmp)
+
+		// f := fmt.Sprintf("<span foreground='%s'>%s: %s%s (%+.1f%%)</span> ", color(market).Hex(), strings.ToUpper(market.Base()), price, quote, percent(market))
+		// builder.WriteString(f)
+
 	}
 
-	if len(i.markets) > 0 {
-		fmt.Fprintln(i.Output)
-	}
+	// if len(i.markets) > 0 {
+	// 	builder.WriteString("\n")
+	// }
+	fmt.Fprintln(os.Stdout, builder.String())
+	logrus.Debug(builder.String())
 }
 
 func (i i3BarFormat) Close() {
