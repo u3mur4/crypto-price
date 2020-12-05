@@ -24,6 +24,7 @@ var flags = struct {
 	JSONLine    bool
 	Server      bool
 	Debug       bool
+	Alert       bool
 	// Throotle    float64
 }{}
 
@@ -48,18 +49,26 @@ var rootCmd = &cobra.Command{
 			ConvertToSatoshi: flags.Satoshi,
 		})
 
+		formats := []format.Formatter{}
+
 		if flags.JSON {
-			c.SetFormatter(format.NewJSON())
+			formats = append(formats, format.NewJSON())
 		} else if flags.Server {
-			c.SetFormatter(format.NewServer())
+			formats = append(formats, format.NewServer())
 		} else if flags.Template != "" {
-			c.SetFormatter(format.NewTemplate(flags.Template))
+			formats = append(formats, format.NewTemplate(flags.Template))
 		} else if flags.Polybar {
-			c.SetFormatter(format.NewPolybar(format.PolybarConfig{
+			formats = append(formats, format.NewPolybar(format.PolybarConfig{
 				Sort: flags.PolybarSort,
 				Icon: false,
 			}))
 		}
+
+		if flags.Alert {
+			formats = append(formats, format.NewAlert())
+		}
+
+		c.SetFormatter(format.NewMulti(formats...))
 
 		err := c.Register(args...)
 		if err != nil {
@@ -100,4 +109,5 @@ func init() {
 
 	rootCmd.Flags().BoolVar(&flags.JSON, "json", false, "json format")
 	rootCmd.Flags().BoolVar(&flags.JSONLine, "jsonl", false, "json line format")
+	rootCmd.Flags().BoolVar(&flags.Alert, "alert", false, "enable alert")
 }

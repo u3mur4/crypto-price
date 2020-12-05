@@ -10,6 +10,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.1
 	github.com/lucasb-eyer/go-colorful v1.0.3
+	github.com/mattn/go-shellwords v1.0.10
 	github.com/preichenberger/go-coinbasepro/v2 v2.0.5
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.6
