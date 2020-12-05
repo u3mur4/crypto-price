@@ -31,7 +31,8 @@ func (p polybarFormat) Open() {
 
 func (p *polybarFormat) formatQuote(chart exchange.Chart) string {
 	if strings.EqualFold(chart.Quote, "btc") {
-		return "Ƀ"
+		// return "Ƀ"
+		return ""
 	} else if strings.EqualFold(chart.Quote, "usd") || strings.EqualFold(chart.Quote, "usdt") {
 		return "$"
 	} else if strings.EqualFold(chart.Quote, "eur") {
