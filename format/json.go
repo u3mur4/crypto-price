@@ -24,19 +24,17 @@ type jsonChart struct {
 	Base     string        `json:"base"`
 	Quote    string        `json:"quote"`
 	Interval time.Duration `json:"interval"`
-	Candles  jsonCandle    `json:"candles"`
+	Candle  jsonCandle    `json:"candle"`
 }
 
 type jsonFormat struct {
 	Output io.Writer
-	first  bool
 }
 
 // NewJSON displays the market as json format
 func NewJSON() Formatter {
 	return &jsonFormat{
 		Output: os.Stdout,
-		first:  true,
 	}
 }
 
@@ -51,7 +49,6 @@ func convertCandles(candle exchange.Candle) (newCandles jsonCandle) {
 		Percent: candle.Percent(),
 		Color:   color(candle).Hex(),
 	}
-	return
 }
 
 func (j *jsonFormat) Show(chart exchange.Chart) {
@@ -60,16 +57,10 @@ func (j *jsonFormat) Show(chart exchange.Chart) {
 		Base:     chart.Base,
 		Quote:    chart.Quote,
 		Interval: chart.Interval,
-		Candles:  convertCandles(chart.Candle),
+		Candle:  convertCandles(chart.Candle),
 	})
 
-	format := ",\n%s"
-	if j.first {
-		format = "%s"
-		j.first = false
-	}
-
-	fmt.Fprintf(j.Output, format, string(b))
+	fmt.Fprintf(j.Output, "%s\n", string(b))
 }
 
 func (j *jsonFormat) Close() {}
