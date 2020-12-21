@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/mattn/go-shellwords"
@@ -16,11 +17,13 @@ import (
 )
 
 type alert struct {
-	ID        string    `json:"id"`
-	Enabled   bool      `json:"enabled"`
-	Condition string    `json:"condition"`
-	Value     []float64 `json:"value"`
-	Cmd       string    `json:"cmd"`
+	ID          string    `json:"id"`
+	Enabled     bool      `json:"enabled"`
+	GracePeriod string    `json:"grace_period"`
+	LastAlert   time.Time `json:"-"`
+	Condition   string    `json:"condition"`
+	Value       []float64 `json:"value"`
+	Cmd         string    `json:"cmd"`
 }
 
 type alertFormat struct {
@@ -91,7 +94,7 @@ func (j *alertFormat) parseAlerts() (alerts []*alert, err error) {
 		return nil, err
 	}
 
-	fmt.Printf("found %d alerts", len(alerts))
+	fmt.Printf("found %d alerts\n", len(alerts))
 	return alerts, nil
 }
 
@@ -125,15 +128,22 @@ func (j *alertFormat) triggerAlert(alert *alert) {
 		return
 	}
 
+	alert.LastAlert = time.Now()
 	cmd.Process.Release()
-	alert.Enabled = false
-	j.saveAlerts(j.alerts)
 }
 
 func (j *alertFormat) Show(chart exchange.Chart) {
 	id := chart.Exchange + ":" + chart.Base + "-" + chart.Quote
 	for _, alert := range j.alerts {
 		if strings.EqualFold(id, alert.ID) && alert.Enabled {
+			gracePeriod, err := time.ParseDuration(alert.GracePeriod)
+			if err == nil && !alert.LastAlert.IsZero() {
+				fmt.Println(gracePeriod, alert.LastAlert)
+				if time.Now().Before(alert.LastAlert.Add(gracePeriod)) {
+					continue
+				}
+			}
+
 			switch alert.Condition {
 			case "gt_percent":
 				if chart.Candle.Percent() > alert.Value[0] {
