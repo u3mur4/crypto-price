@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/mattn/go-shellwords"
 	"github.com/u3mur4/crypto-price/exchange"
 )
@@ -29,22 +31,68 @@ func NewAlert() Formatter {
 	return &alertFormat{}
 }
 
+func (j *alertFormat) watchAlert() {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer watcher.Close()
+
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					alerts, err := j.parseAlerts()
+					if err == nil {
+						j.alerts = alerts
+					}
+				}
+
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				log.Println("error:", err)
+			}
+		}
+	}()
+
+	err = watcher.Add(j.alertPath())
+	if err != nil {
+		log.Fatal(err)
+	}
+	<-done
+}
+
 func (j *alertFormat) alertPath() string {
 	home, _ := os.UserHomeDir()
 	return path.Join(home, ".crypto-alerts.json")
 }
 
-func (j *alertFormat) parseAlerts() (alerts []*alert) {
+func (j *alertFormat) parseAlerts() (alerts []*alert, err error) {
 	jsonFile, err := os.Open(j.alertPath())
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "cannot parse alerts file")
+		return nil, err
 	}
 	defer jsonFile.Close()
 
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-	json.Unmarshal(byteValue, &alerts)
+	byteValue, err := ioutil.ReadAll(jsonFile)
+	if err != nil {
+		return nil, err
+	}
+	print(string(byteValue))
+	err = json.Unmarshal(byteValue, &alerts)
+	if err != nil {
+		return nil, err
+	}
+
 	fmt.Printf("found %d alerts", len(alerts))
-	return
+	return alerts, nil
 }
 
 func (j *alertFormat) saveAlerts(alerts []*alert) {
@@ -54,7 +102,12 @@ func (j *alertFormat) saveAlerts(alerts []*alert) {
 }
 
 func (j *alertFormat) Open() {
-	j.alerts = j.parseAlerts()
+	alerts, err := j.parseAlerts()
+	if err != nil {
+		log.Println("error in open whil parsing alter config file:", err)
+	}
+	j.alerts = alerts
+	go j.watchAlert()
 }
 
 func (j *alertFormat) triggerAlert(alert *alert) {
