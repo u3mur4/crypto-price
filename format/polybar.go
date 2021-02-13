@@ -96,7 +96,7 @@ func (i *polybarFormat) Show(chart exchange.Chart) {
 		builder.WriteString(color(chart.Candle).Hex())
 		builder.WriteString("}")
 
-		builder.WriteString(i.openTradingViewCmd(chart))
+		// builder.WriteString(i.openTradingViewCmd(chart))
 
 		builder.WriteString(strings.ToUpper(chart.Base))
 		builder.WriteString(": ")
