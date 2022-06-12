@@ -10,12 +10,12 @@ type fake struct {
 	exchangeHelper
 }
 
-func (f *fake) Start(ctx context.Context, update chan<- Chart) error {
-	for _, chart := range f.charts {
-		chart.Candle.High = float64(rand.Int31n(1000) + 1000 )
-		chart.Candle.Open = float64(rand.Int31n(1000))
-		chart.Candle.Low = float64(rand.Int31n(1000))
-		chart.Candle.Update(float64(rand.Int31n(1000)))
+func (f *fake) Start(ctx context.Context, update chan<- Market) error {
+	for _, market := range f.markets {
+		market.Candle.High = float64(rand.Int31n(1000) + 1000)
+		market.Candle.Open = float64(rand.Int31n(1000))
+		market.Candle.Low = float64(rand.Int31n(1000))
+		market.Candle.Update(float64(rand.Int31n(1000)))
 	}
 
 	for {
@@ -23,12 +23,12 @@ func (f *fake) Start(ctx context.Context, update chan<- Chart) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-time.After(time.Millisecond * 100):
-			for _, chart := range f.charts {
-				chart.Candle.Update(chart.Candle.Close + 1)
-				if chart.Candle.Percent() > 100 {
-					chart.Candle.Close = chart.Candle.Open
+			for _, market := range f.markets {
+				market.Candle.Update(market.Candle.Close + 1)
+				if market.Candle.Percent() > 100 {
+					market.Candle.Close = market.Candle.Open
 				}
-				update <- *chart
+				update <- *market
 			}
 		}
 	}

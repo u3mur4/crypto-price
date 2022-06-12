@@ -132,8 +132,8 @@ func (j *alertFormat) triggerAlert(alert *alert) {
 	cmd.Process.Release()
 }
 
-func (j *alertFormat) Show(chart exchange.Chart) {
-	id := chart.Exchange + ":" + chart.Base + "-" + chart.Quote
+func (j *alertFormat) Show(market exchange.Market) {
+	id := market.Exchange + ":" + market.Base + "-" + market.Quote
 	for _, alert := range j.alerts {
 		if strings.EqualFold(id, alert.ID) && alert.Enabled {
 			gracePeriod, err := time.ParseDuration(alert.GracePeriod)
@@ -146,19 +146,19 @@ func (j *alertFormat) Show(chart exchange.Chart) {
 
 			switch alert.Condition {
 			case "gt_percent":
-				if chart.Candle.Percent() > alert.Value[0] {
+				if market.Candle.Percent() > alert.Value[0] {
 					j.triggerAlert(alert)
 				}
 			case "lt_percent":
-				if chart.Candle.Percent() < alert.Value[0] {
+				if market.Candle.Percent() < alert.Value[0] {
 					j.triggerAlert(alert)
 				}
 			case "gt_price":
-				if chart.Candle.Close > alert.Value[0] {
+				if market.Candle.Close > alert.Value[0] {
 					j.triggerAlert(alert)
 				}
 			case "lt_price":
-				if chart.Candle.Close < alert.Value[0] {
+				if market.Candle.Close < alert.Value[0] {
 					j.triggerAlert(alert)
 				}
 			}

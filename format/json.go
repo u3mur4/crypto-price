@@ -24,7 +24,7 @@ type jsonChart struct {
 	Base     string        `json:"base"`
 	Quote    string        `json:"quote"`
 	Interval time.Duration `json:"interval"`
-	Candle  jsonCandle    `json:"candle"`
+	Candle   jsonCandle    `json:"candle"`
 }
 
 type jsonFormat struct {
@@ -51,13 +51,13 @@ func convertCandles(candle exchange.Candle) (newCandles jsonCandle) {
 	}
 }
 
-func (j *jsonFormat) Show(chart exchange.Chart) {
+func (j *jsonFormat) Show(market exchange.Market) {
 	b, _ := json.Marshal(&jsonChart{
-		Exchange: chart.Exchange,
-		Base:     chart.Base,
-		Quote:    chart.Quote,
-		Interval: chart.Interval,
-		Candle:  convertCandles(chart.Candle),
+		Exchange: market.Exchange,
+		Base:     market.Base,
+		Quote:    market.Quote,
+		Interval: market.Interval,
+		Candle:   convertCandles(market.Candle),
 	})
 
 	fmt.Fprintf(j.Output, "%s\n", string(b))

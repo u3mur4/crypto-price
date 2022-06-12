@@ -3,10 +3,10 @@ package exchange
 import "time"
 
 type Candle struct {
-	High  float64
 	Open  float64
-	Close float64
+	High  float64
 	Low   float64
+	Close float64
 }
 
 func (m *Candle) Update(close float64) {
@@ -34,7 +34,7 @@ func (m Candle) ToSatoshi() Candle {
 	}
 }
 
-type Chart struct {
+type Market struct {
 	Exchange string
 	Base     string
 	Quote    string
@@ -42,8 +42,8 @@ type Chart struct {
 	Candle   Candle
 }
 
-func newChart(name, base, quote string, interval time.Duration) *Chart {
-	return &Chart{
+func newMarket(name, base, quote string, interval time.Duration) *Market {
+	return &Market{
 		Exchange: name,
 		Base:     base,
 		Quote:    quote,

@@ -12,12 +12,12 @@ type Exchange interface {
 	// Register a market to listen for price changes
 	Register(base string, quote string, interval time.Duration) error
 	// Start listening for price changes in the registered markets
-	Start(ctx context.Context, update chan<- Chart) error
+	Start(ctx context.Context, update chan<- Market) error
 }
 
 type exchangeHelper struct {
-	name   string
-	charts []*Chart
+	name    string
+	markets []*Market
 }
 
 func (h *exchangeHelper) Name() string {
@@ -25,6 +25,6 @@ func (h *exchangeHelper) Name() string {
 }
 
 func (h *exchangeHelper) Register(base string, quote string, interval time.Duration) error {
-	h.charts = append(h.charts, newChart(h.name, base, quote, interval))
+	h.markets = append(h.markets, newMarket(h.name, base, quote, interval))
 	return nil
 }

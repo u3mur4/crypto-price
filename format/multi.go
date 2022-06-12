@@ -18,9 +18,9 @@ func (m multiFormat) Open() {
 	}
 }
 
-func (m multiFormat) Show(chart exchange.Chart) {
-	for _, f := range m.formatters {
-		f.Show(chart)
+func (m multiFormat) Show(market exchange.Market) {
+	for _, formatter := range m.formatters {
+		formatter.Show(market)
 	}
 }
 

@@ -11,13 +11,13 @@ import (
 // NewServer displays the market as json format
 func NewServer() Formatter {
 	return &serverFormatter{
-		charts:        make(map[string]exchange.Chart),
+		markets:        make(map[string]exchange.Market),
 		jsonFormatter: NewJSON().(*jsonFormat),
 	}
 }
 
 type serverFormatter struct {
-	charts        map[string]exchange.Chart
+	markets        map[string]exchange.Market
 	jsonFormatter *jsonFormat
 }
 
@@ -34,7 +34,7 @@ func (j *serverFormatter) Open() {
 func (j *serverFormatter) handler(w http.ResponseWriter, r *http.Request) {
 	key := strings.ToLower(r.URL.Path[1:])
 	// fmt.Println("New request for " + key)
-	if chart, ok := j.charts[key]; ok {
+	if chart, ok := j.markets[key]; ok {
 		w.Header().Set("Content-Type", "application/json")
 		j.jsonFormatter.Output = w
 		j.jsonFormatter.Show(chart)
@@ -44,10 +44,10 @@ func (j *serverFormatter) handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (j *serverFormatter) Show(chart exchange.Chart) {
-	key := chart.Exchange + ":" + chart.Base + "-" + chart.Quote
+func (j *serverFormatter) Show(market exchange.Market) {
+	key := market.Exchange + ":" + market.Base + "-" + market.Quote
 	key = strings.ToLower(key)
-	j.charts[key] = chart
+	j.markets[key] = market
 }
 
 func (j *serverFormatter) Close() {

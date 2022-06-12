@@ -16,7 +16,7 @@ type PolybarConfig struct {
 }
 
 type polybarFormat struct {
-	charts    map[string]exchange.Chart
+	markets    map[string]exchange.Market
 	showPrice map[string]bool
 	config    PolybarConfig
 	keys      []string
@@ -24,7 +24,7 @@ type polybarFormat struct {
 
 func NewPolybar(config PolybarConfig) Formatter {
 	return &polybarFormat{
-		charts:    make(map[string]exchange.Chart),
+		markets:    make(map[string]exchange.Market),
 		config:    config,
 		showPrice: make(map[string]bool),
 	}
@@ -50,37 +50,37 @@ func (p *polybarFormat) Open() {
 	go http.ListenAndServe(":60253", nil)
 }
 
-func (p *polybarFormat) formatQuote(chart exchange.Chart) string {
-	if strings.EqualFold(chart.Quote, "btc") {
+func (p *polybarFormat) formatQuote(market exchange.Market) string {
+	if strings.EqualFold(market.Quote, "btc") {
 		// return "Ƀ"
 		return ""
-	} else if strings.EqualFold(chart.Quote, "usd") || strings.EqualFold(chart.Quote, "usdt") {
+	} else if strings.EqualFold(market.Quote, "usd") || strings.EqualFold(market.Quote, "usdt") {
 		return "$"
-	} else if strings.EqualFold(chart.Quote, "eur") {
+	} else if strings.EqualFold(market.Quote, "eur") {
 		return "€"
 	}
 	return ""
 }
 
-func (i *polybarFormat) formatPrice(chart exchange.Chart) string {
-	if strings.EqualFold(chart.Quote, "btc") {
-		if chart.Candle.Close < 1 {
-			return fmt.Sprintf("%.8f", chart.Candle.Close)
+func (i *polybarFormat) formatPrice(market exchange.Market) string {
+	if strings.EqualFold(market.Quote, "btc") {
+		if market.Candle.Close < 1 {
+			return fmt.Sprintf("%.8f", market.Candle.Close)
 		}
-		return humanize.Comma(int64(chart.Candle.Close))
+		return humanize.Comma(int64(market.Candle.Close))
 	}
-	return fmt.Sprintf("%.0f", chart.Candle.Close)
+	return fmt.Sprintf("%.0f", market.Candle.Close)
 }
 
-func (i *polybarFormat) openTradingViewCmd(chart exchange.Chart) string {
+func (i *polybarFormat) openTradingViewCmd(market exchange.Market) string {
 	b := strings.Builder{}
 
 	b.WriteString("chromium --newtab ")
 	b.WriteString("https://www.tradingview.com/chart/?symbol=")
-	b.WriteString(chart.Exchange)
+	b.WriteString(market.Exchange)
 	b.WriteString(":")
-	b.WriteString(chart.Base)
-	b.WriteString(chart.Quote)
+	b.WriteString(market.Base)
+	b.WriteString(market.Quote)
 	b.WriteString(" --profile-directory=\"Profile 2\"")
 
 	return "%{A1:" + strings.Replace(b.String(), ":", "\\:", -1) + ":}"
@@ -96,14 +96,14 @@ func (i *polybarFormat) tooglePrice(market, data string) string {
 	return b.String()
 }
 
-func (i *polybarFormat) Show(chart exchange.Chart) {
-	key := chart.Exchange + chart.Base + chart.Quote
+func (i *polybarFormat) Show(market exchange.Market) {
+	key := market.Exchange + market.Base + market.Quote
 
 	// keep output consistent
-	if _, ok := i.charts[key]; !ok {
+	if _, ok := i.markets[key]; !ok {
 		i.keys = append(i.keys, key)
 	}
-	i.charts[key] = chart
+	i.markets[key] = market
 
 	if _, ok := i.showPrice[key]; !ok {
 		i.showPrice[key] = true
@@ -112,10 +112,10 @@ func (i *polybarFormat) Show(chart exchange.Chart) {
 	// format all market
 	builder := strings.Builder{}
 	for _, k := range i.keys {
-		chart := i.charts[k]
+		market := i.markets[k]
 
-		price := i.formatPrice(chart)
-		quote := i.formatQuote(chart)
+		price := i.formatPrice(market)
+		quote := i.formatQuote(market)
 		// icon := i.getIcon(market)
 
 		// // use icon or the base
@@ -128,17 +128,17 @@ func (i *polybarFormat) Show(chart exchange.Chart) {
 		// builder.WriteString(tmp)
 
 		builder.WriteString("%{F")
-		builder.WriteString(color(chart.Candle).Hex())
+		builder.WriteString(color(market.Candle).Hex())
 		builder.WriteString("}")
 
 		// builder.WriteString(i.openTradingViewCmd(chart))
 
-		builder.WriteString(i.tooglePrice(k, strings.ToUpper(chart.Base)))
+		builder.WriteString(i.tooglePrice(k, strings.ToUpper(market.Base)))
 		if showPrice, ok := i.showPrice[k]; ok && showPrice {
 			builder.WriteString(": ")
 			builder.WriteString(quote)
 			builder.WriteString(price)
-			builder.WriteString(fmt.Sprintf(" (%+.1f%%) ", chart.Candle.Percent()))
+			builder.WriteString(fmt.Sprintf(" (%+.1f%%) ", market.Candle.Percent()))
 		} else {
 			builder.WriteString(" ")
 		}
