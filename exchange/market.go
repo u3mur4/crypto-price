@@ -26,11 +26,12 @@ func (m Candle) Percent() float64 {
 }
 
 func (m Candle) ToSatoshi() Candle {
+	const TO_SATOSHI = 100_000_000
 	return Candle{
-		High:  m.High * 100000000,
-		Open:  m.Open * 100000000,
-		Close: m.Close * 100000000,
-		Low:   m.Low * 100000000,
+		High:  m.High * TO_SATOSHI,
+		Open:  m.Open * TO_SATOSHI,
+		Close: m.Close * TO_SATOSHI,
+		Low:   m.Low * TO_SATOSHI,
 	}
 }
 
