@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	binancelib "github.com/adshao/go-binance"
+	binancelib "github.com/adshao/go-binance/v2"
 	"github.com/sirupsen/logrus"
 )
 

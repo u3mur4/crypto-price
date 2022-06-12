@@ -3,7 +3,7 @@ module github.com/u3mur4/crypto-price
 go 1.18
 
 require (
-	github.com/adshao/go-binance v0.0.0-20200311024123-dfbfd7e703ca
+	github.com/adshao/go-binance/v2 v2.3.5
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dustin/go-humanize v1.0.0
