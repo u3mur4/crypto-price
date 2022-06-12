@@ -1,4 +1,4 @@
-package cryptoprice
+package exchange
 
 import (
 	"context"
@@ -7,50 +7,52 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
-
 	"github.com/sirupsen/logrus"
-
-	"github.com/u3mur4/crypto-price/exchange"
-	"github.com/u3mur4/crypto-price/format"
 )
+
+type Formatter interface {
+	Open()
+	Show(market Market)
+	Close()
+}
 
 type Options struct {
 	ConvertToSatoshi bool
 }
 
-type Client interface {
+type Aggregator interface {
 	Register(format ...string) error
 	Start()
 	Close() error
-	SetFormatter(f format.Formatter)
+	SetFormatter(f Formatter)
 }
 
 type client struct {
-	exchanges map[string]func() exchange.Exchange // exchange name - exchange constructor
-	markets   map[string][]string                 // exchange name - markets
+	exchanges map[string]func() Exchange // exchange name - exchange constructor
+	markets   map[string][]string        // exchange name - markets
 	options   Options
-	update    chan exchange.Market
+	update    chan Market
 	cancel    context.CancelFunc
-	formatter format.Formatter
+	formatter Formatter
 }
 
 // NewClient creates a new default clients
-func NewClient(options Options) Client {
+func NewClient(options Options, formatter Formatter) Aggregator {
 	return &client{
-		exchanges: map[string]func() exchange.Exchange{
+		exchanges: map[string]func() Exchange{
 			// "bittrex":  exchange.NewBittrex,
-			"binance": exchange.NewBinance,
-			"fake":    exchange.NewFake,
+			"binance": NewBinance,
+			"fake":    NewFake,
 		},
 		markets:   make(map[string][]string),
 		options:   options,
-		update:    make(chan exchange.Market, 1),
-		formatter: format.NewPolybar(format.PolybarConfig{}),
+		update:    make(chan Market, 1),
+		formatter: formatter,
 	}
 }
 
-func (c *client) SetFormatter(f format.Formatter) {
-	c.formatter = f
+func (c *client) SetFormatter(formatter Formatter) {
+	c.formatter = formatter
 }
 
 // Register adds a new markets. The format is exchange:marketname
@@ -75,13 +77,13 @@ func (c *client) register(format string) error {
 	return nil
 }
 
-func (c *client) applyOptions(market *exchange.Market) {
+func (c *client) applyOptions(market *Market) {
 	if c.options.ConvertToSatoshi && strings.EqualFold(market.Quote, "btc") {
 		market.Candle = market.Candle.ToSatoshi()
 	}
 }
 
-func (c *client) showMarket(market exchange.Market) {
+func (c *client) showMarket(market Market) {
 	c.applyOptions(&market)
 	c.formatter.Show(market)
 }

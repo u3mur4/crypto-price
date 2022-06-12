@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	cryptoprice "github.com/u3mur4/crypto-price"
+	"github.com/u3mur4/crypto-price/exchange"
 	"github.com/u3mur4/crypto-price/format"
 )
 
@@ -45,9 +45,9 @@ var rootCmd = &cobra.Command{
 		logrus.SetOutput(f)
 		logrus.SetLevel(logrus.DebugLevel)
 
-		c := cryptoprice.NewClient(cryptoprice.Options{
+		c := exchange.NewClient(exchange.Options{
 			ConvertToSatoshi: flags.Satoshi,
-		})
+		}, format.NewPolybar(format.PolybarConfig{}))
 
 		formats := []format.Formatter{}
 
