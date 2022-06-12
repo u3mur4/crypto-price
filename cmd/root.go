@@ -45,7 +45,7 @@ var rootCmd = &cobra.Command{
 		logrus.SetOutput(f)
 		logrus.SetLevel(logrus.DebugLevel)
 
-		c := exchange.NewAggregator(exchange.Options{
+		aggregator := exchange.NewAggregator(exchange.Options{
 			ConvertToSatoshi: flags.Satoshi,
 		}, format.NewPolybar(format.PolybarConfig{}))
 
@@ -68,14 +68,14 @@ var rootCmd = &cobra.Command{
 			formats = append(formats, format.NewAlert())
 		}
 
-		c.SetFormatter(format.NewMulti(formats...))
+		aggregator.SetFormatter(format.NewMulti(formats...))
 
-		err := c.Register(args...)
+		err := aggregator.Register(args...)
 		if err != nil {
 			logrus.WithError(err).Fatal("register error")
 		}
 
-		c.Start()
+		aggregator.Start()
 	},
 }
 
