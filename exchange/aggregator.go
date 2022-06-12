@@ -95,7 +95,7 @@ func (c *Aggregator) startExchange(ctx context.Context, name string) error {
 			return fmt.Errorf("invalid product format")
 		}
 
-		err := ex.Register(pair[0], pair[1], time.Hour*24)
+		err := ex.Register(pair[0], pair[1])
 		if err != nil {
 			return err
 		}

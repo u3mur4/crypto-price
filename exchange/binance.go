@@ -20,27 +20,9 @@ func (b binance) getChartTicker(market *Market) string {
 	return strings.ToUpper(market.Base + market.Quote)
 }
 
-func (b binance) getIntervalString(market *Market) string {
-	if market.Interval <= time.Minute {
-		return "1m"
-	} else if market.Interval <= time.Minute*5 {
-		return "5m"
-	} else if market.Interval <= time.Minute*15 {
-		return "15m"
-	} else if market.Interval <= time.Minute*30 {
-		return "30m"
-	} else if market.Interval <= time.Minute*60 {
-		return "1h"
-	} else if market.Interval <= time.Hour*4 {
-		return "4h"
-	} else {
-		return "1d"
-	}
-}
-
 func (b binance) initMarket(market *Market) error {
 	kline := b.client.NewKlinesService()
-	kline = kline.Symbol(b.getChartTicker(market)).Interval(b.getIntervalString(market)).Limit(1)
+	kline = kline.Symbol(b.getChartTicker(market)).Interval("1d").Limit(1)
 	result, err := kline.Do(context.Background())
 	if err != nil {
 		return err
@@ -56,7 +38,7 @@ func (b *binance) Start(ctx context.Context, update chan<- Market) error {
 	for _, market := range b.markets {
 		b.initMarket(market)
 		update <- *market
-		runEvery(context.Background(), market.Interval, func() {
+		runEvery(context.Background(), time.Hour, func() {
 			b.initMarket(market)
 		})
 	}

@@ -1,7 +1,5 @@
 package exchange
 
-import "time"
-
 type Candle struct {
 	Open  float64
 	High  float64
@@ -39,16 +37,14 @@ type Market struct {
 	Exchange string
 	Base     string
 	Quote    string
-	Interval time.Duration
 	Candle   Candle
 }
 
-func newMarket(name, base, quote string, interval time.Duration) *Market {
+func newMarket(name, base, quote string) *Market {
 	return &Market{
 		Exchange: name,
 		Base:     base,
 		Quote:    quote,
-		Interval: interval,
 		Candle:   Candle{},
 	}
 }

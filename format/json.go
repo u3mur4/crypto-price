@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
 
 	"github.com/u3mur4/crypto-price/exchange"
 )
@@ -23,7 +22,6 @@ type jsonChart struct {
 	Exchange string        `json:"exchange"`
 	Base     string        `json:"base"`
 	Quote    string        `json:"quote"`
-	Interval time.Duration `json:"interval"`
 	Candle   jsonCandle    `json:"candle"`
 }
 
@@ -56,7 +54,6 @@ func (j *jsonFormat) Show(market exchange.Market) {
 		Exchange: market.Exchange,
 		Base:     market.Base,
 		Quote:    market.Quote,
-		Interval: market.Interval,
 		Candle:   convertCandles(market.Candle),
 	})
 
