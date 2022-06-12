@@ -7,7 +7,12 @@ import (
 )
 
 type fake struct {
-	exchangeHelper
+	markets []*Market
+}
+
+func (f *fake) Register(base string, quote string) error {
+	f.markets = append(f.markets, newMarket("fake", base, quote))
+	return nil
 }
 
 func (f *fake) Start(ctx context.Context, update chan<- Market) error {
@@ -36,9 +41,5 @@ func (f *fake) Start(ctx context.Context, update chan<- Market) error {
 
 // NewFake returns a test exchange
 func NewFake() Exchange {
-	return &fake{
-		exchangeHelper: exchangeHelper{
-			name: "fake",
-		},
-	}
+	return &fake{}
 }

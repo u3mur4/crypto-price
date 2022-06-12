@@ -12,7 +12,7 @@ import (
 )
 
 type binance struct {
-	exchangeHelper
+	markets []*Market
 	client *binancelib.Client
 }
 
@@ -31,6 +31,11 @@ func (b binance) initMarket(market *Market) error {
 	market.Candle.Open, _ = strconv.ParseFloat(result[0].Open, 64)
 	market.Candle.Close, _ = strconv.ParseFloat(result[0].Close, 64)
 	market.Candle.Low, _ = strconv.ParseFloat(result[0].Low, 64)
+	return nil
+}
+
+func (b *binance) Register(base string, quote string) error {
+	b.markets = append(b.markets, newMarket("binance", base, quote))
 	return nil
 }
 
@@ -83,9 +88,6 @@ func (b *binance) Start(ctx context.Context, update chan<- Market) error {
 
 func NewBinance() Exchange {
 	return &binance{
-		exchangeHelper: exchangeHelper{
-			name: "binance",
-		},
 		client: binancelib.NewClient("", ""),
 	}
 }
