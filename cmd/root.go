@@ -45,7 +45,7 @@ var rootCmd = &cobra.Command{
 		logrus.SetOutput(f)
 		logrus.SetLevel(logrus.DebugLevel)
 
-		c := exchange.NewClient(exchange.Options{
+		c := exchange.NewAggregator(exchange.Options{
 			ConvertToSatoshi: flags.Satoshi,
 		}, format.NewPolybar(format.PolybarConfig{}))
 

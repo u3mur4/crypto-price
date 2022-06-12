@@ -20,14 +20,7 @@ type Options struct {
 	ConvertToSatoshi bool
 }
 
-type Aggregator interface {
-	Register(format ...string) error
-	Start()
-	Close() error
-	SetFormatter(f Formatter)
-}
-
-type client struct {
+type Aggregator struct {
 	exchanges map[string]func() Exchange // exchange name - exchange constructor
 	markets   map[string][]string        // exchange name - markets
 	options   Options
@@ -36,11 +29,10 @@ type client struct {
 	formatter Formatter
 }
 
-// NewClient creates a new default clients
-func NewClient(options Options, formatter Formatter) Aggregator {
-	return &client{
+// NewAggregator creates a new default clients
+func NewAggregator(options Options, formatter Formatter) *Aggregator {
+	return &Aggregator{
 		exchanges: map[string]func() Exchange{
-			// "bittrex":  exchange.NewBittrex,
 			"binance": NewBinance,
 			"fake":    NewFake,
 		},
@@ -51,12 +43,12 @@ func NewClient(options Options, formatter Formatter) Aggregator {
 	}
 }
 
-func (c *client) SetFormatter(formatter Formatter) {
+func (c *Aggregator) SetFormatter(formatter Formatter) {
 	c.formatter = formatter
 }
 
 // Register adds a new markets. The format is exchange:marketname
-func (c *client) Register(format ...string) error {
+func (c *Aggregator) Register(format ...string) error {
 	for _, f := range format {
 		err := c.register(f)
 		if err != nil {
@@ -66,7 +58,7 @@ func (c *client) Register(format ...string) error {
 	return nil
 }
 
-func (c *client) register(format string) error {
+func (c *Aggregator) register(format string) error {
 	slice := strings.SplitN(format, ":", 2)
 	if len(slice) != 2 {
 		return fmt.Errorf("invalid format")
@@ -77,18 +69,18 @@ func (c *client) register(format string) error {
 	return nil
 }
 
-func (c *client) applyOptions(market *Market) {
+func (c *Aggregator) applyOptions(market *Market) {
 	if c.options.ConvertToSatoshi && strings.EqualFold(market.Quote, "btc") {
 		market.Candle = market.Candle.ToSatoshi()
 	}
 }
 
-func (c *client) showMarket(market Market) {
+func (c *Aggregator) showMarket(market Market) {
 	c.applyOptions(&market)
 	c.formatter.Show(market)
 }
 
-func (c *client) startExchange(ctx context.Context, name string) error {
+func (c *Aggregator) startExchange(ctx context.Context, name string) error {
 	createExchange, ok := c.exchanges[name]
 	if !ok {
 		return fmt.Errorf("exchange not found")
@@ -112,10 +104,9 @@ func (c *client) startExchange(ctx context.Context, name string) error {
 	return ex.Start(ctx, c.update)
 }
 
-func (c *client) startAllExchange() error {
+func (c *Aggregator) startAllExchange() error {
 	c.formatter.Open()
 	defer c.formatter.Close()
-	defer c.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	c.cancel = cancel
@@ -145,16 +136,17 @@ func (c *client) startAllExchange() error {
 	return nil
 }
 
-func (c *client) Start() {
+func (c *Aggregator) Start() {
 	for {
 		err := c.startAllExchange()
+		defer c.cancel()
 		if err != nil {
 			logrus.WithError(err).Error("exchanges stoped")
 		}
 	}
 }
 
-func (c *client) Close() error {
+func (c *Aggregator) Close() error {
 	c.cancel()
 	return nil
 }
