@@ -54,11 +54,14 @@ var rootCmd = &cobra.Command{
 
 		if flags.JSON {
 			formats = append(formats, format.NewJSON())
-		} else if flags.Server {
+		} 
+		if flags.Server {
 			formats = append(formats, format.NewServer())
-		} else if flags.Template != "" {
+		} 
+		if flags.Template != "" {
 			formats = append(formats, format.NewTemplate(flags.Template))
-		} else if flags.Polybar {
+		} 
+		if flags.Polybar {
 			formats = append(formats, format.NewPolybar(format.PolybarConfig{
 				ShortOnlyOnWeekend: flags.PolybarShortOnlyOnWeekend,
 				Sort:               flags.PolybarSort,
