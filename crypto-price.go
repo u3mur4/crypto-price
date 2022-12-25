@@ -12,19 +12,20 @@ import (
 )
 
 var flags = struct {
-	Format      string
-	Template    string
-	Satoshi     bool
-	I3Bar       bool
-	I3BarSort   string
-	I3BarIcon   bool
-	Polybar     bool
-	PolybarSort string
-	JSON        bool
-	JSONLine    bool
-	Server      bool
-	Debug       bool
-	Alert       bool
+	Format                    string
+	Template                  string
+	Satoshi                   bool
+	I3Bar                     bool
+	I3BarSort                 string
+	I3BarIcon                 bool
+	Polybar                   bool
+	PolybarSort               string
+	PolybarShortOnlyOnWeekend bool
+	JSON                      bool
+	JSONLine                  bool
+	Server                    bool
+	Debug                     bool
+	Alert                     bool
 	// Throotle    float64
 }{}
 
@@ -59,8 +60,9 @@ var rootCmd = &cobra.Command{
 			formats = append(formats, format.NewTemplate(flags.Template))
 		} else if flags.Polybar {
 			formats = append(formats, format.NewPolybar(format.PolybarConfig{
-				Sort: flags.PolybarSort,
-				Icon: false,
+				ShortOnlyOnWeekend: flags.PolybarShortOnlyOnWeekend,
+				Sort:               flags.PolybarSort,
+				Icon:               false,
 			}))
 		}
 
@@ -95,6 +97,7 @@ func init() {
 
 	rootCmd.Flags().BoolVar(&flags.Polybar, "polybar", true, "polybar format")
 	rootCmd.Flags().StringVar(&flags.PolybarSort, "polybar-sort", "keep", "sort markets by change. values: keep, inc, dec")
+	rootCmd.Flags().BoolVar(&flags.PolybarShortOnlyOnWeekend, "polybar-weekend-short", false, "short display on weekend")
 
 	rootCmd.Flags().BoolVar(&flags.JSON, "json", false, "json format")
 	rootCmd.Flags().BoolVar(&flags.JSONLine, "jsonl", false, "json line format")

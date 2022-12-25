@@ -5,18 +5,20 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/u3mur4/crypto-price/exchange"
 )
 
 type PolybarConfig struct {
-	Sort string
-	Icon bool
+	Sort               string
+	Icon               bool
+	ShortOnlyOnWeekend bool
 }
 
 type polybarFormat struct {
-	markets    map[string]exchange.Market
+	markets   map[string]exchange.Market
 	showPrice map[string]bool
 	config    PolybarConfig
 	keys      []string
@@ -24,7 +26,7 @@ type polybarFormat struct {
 
 func NewPolybar(config PolybarConfig) Formatter {
 	return &polybarFormat{
-		markets:    make(map[string]exchange.Market),
+		markets:   make(map[string]exchange.Market),
 		config:    config,
 		showPrice: make(map[string]bool),
 	}
@@ -107,6 +109,12 @@ func (i *polybarFormat) Show(market exchange.Market) {
 
 	if _, ok := i.showPrice[key]; !ok {
 		i.showPrice[key] = true
+	}
+
+	// on weekend only label is visible
+	weekDay := time.Now().Weekday()
+	if i.config.ShortOnlyOnWeekend && (weekDay == time.Saturday || weekDay == time.Sunday) {
+		i.showPrice[key] = false
 	}
 
 	// format all market
