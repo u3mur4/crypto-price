@@ -21,6 +21,7 @@ var flags = struct {
 	Polybar                   bool
 	PolybarSort               string
 	PolybarShortOnlyOnWeekend bool
+	I3LockPlugin              int
 	JSON                      bool
 	JSONLine                  bool
 	Server                    bool
@@ -54,19 +55,22 @@ var rootCmd = &cobra.Command{
 
 		if flags.JSON {
 			formats = append(formats, format.NewJSON())
-		} 
+		}
 		if flags.Server {
 			formats = append(formats, format.NewServer())
-		} 
+		}
 		if flags.Template != "" {
 			formats = append(formats, format.NewTemplate(flags.Template))
-		} 
+		}
 		if flags.Polybar {
 			formats = append(formats, format.NewPolybar(format.PolybarConfig{
 				ShortOnlyOnWeekend: flags.PolybarShortOnlyOnWeekend,
 				Sort:               flags.PolybarSort,
 				Icon:               false,
 			}))
+		}
+		if flags.I3LockPlugin > 0 {
+			formats = append(formats, format.NewI3LockPluginFormatter(flags.I3LockPlugin))
 		}
 
 		if flags.Alert {
@@ -98,9 +102,11 @@ func init() {
 	rootCmd.Flags().BoolVar(&flags.I3BarIcon, "i3bar-icon", false, "Enable icons. (https://github.com/AllienWorks/cryptocoins)")
 	rootCmd.Flags().StringVar(&flags.I3BarSort, "i3bar-sort", "keep", "sort markets by change. values: keep, inc, dec")
 
-	rootCmd.Flags().BoolVar(&flags.Polybar, "polybar", true, "polybar format")
+	rootCmd.Flags().BoolVar(&flags.Polybar, "polybar", false, "polybar format")
 	rootCmd.Flags().StringVar(&flags.PolybarSort, "polybar-sort", "keep", "sort markets by change. values: keep, inc, dec")
 	rootCmd.Flags().BoolVar(&flags.PolybarShortOnlyOnWeekend, "polybar-weekend-short", false, "short display on weekend")
+
+	rootCmd.Flags().IntVar(&flags.I3LockPlugin, "i3lock-plugin", 100, "generate images for i3lock plugin")
 
 	rootCmd.Flags().BoolVar(&flags.JSON, "json", false, "json format")
 	rootCmd.Flags().BoolVar(&flags.JSONLine, "jsonl", false, "json line format")
