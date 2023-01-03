@@ -44,6 +44,8 @@ func (p *polybarFormat) Open() {
 			market := r.FormValue("market")
 			if showPrice, ok := p.showPrice[market]; ok {
 				p.showPrice[market] = !showPrice
+				// force to render immediately
+				p.Show(p.markets[market])
 			}
 		}
 	}
