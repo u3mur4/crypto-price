@@ -58,6 +58,8 @@ type i3lockPlugin struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	market *exchange.Market
+	// NOTE: I need to reload the page sometimes because the chart doesn't reflects the price change in tradingview
+	lastReload time.Time
 }
 
 func newi3lockPlugin(X, Y int, market exchange.Market) *i3lockPlugin {
@@ -98,20 +100,24 @@ func newi3lockPlugin(X, Y int, market exchange.Market) *i3lockPlugin {
 	}
 
 	return &i3lockPlugin{
-		X:      X,
-		Y:      Y,
-		ctx:    ctx,
-		cancel: cancel,
-		market: nil,
+		X:          X,
+		Y:          Y,
+		ctx:        ctx,
+		cancel:     cancel,
+		market:     nil,
+		lastReload: time.Now(),
 	}
 }
 
 func (p *i3lockPlugin) takeScreenShot() ([]byte, error) {
 	// capture screenshot of an element
 	var imgData []byte
-	tasks := chromedp.Tasks{
-		chromedp.Screenshot(".tradingview-widget-container > iframe", &imgData, chromedp.NodeVisible),
+	tasks := chromedp.Tasks{}
+	if time.Since(p.lastReload) > time.Minute*5 {
+		tasks = append(tasks, chromedp.Reload(), chromedp.Sleep(time.Millisecond*500))
+		p.lastReload = time.Now()
 	}
+	tasks = append(tasks, chromedp.Screenshot(".tradingview-widget-container > iframe", &imgData, chromedp.NodeVisible))
 	if err := chromedp.Run(p.ctx, tasks); err != nil {
 		return nil, err
 	}
