@@ -92,7 +92,7 @@ func newi3lockPlugin(X, Y int, market exchange.Market) *i3lockPlugin {
 			return fmt.Errorf("hide default white background: %w", err)
 		}),
 
-		chromedp.Sleep(time.Millisecond * 500),
+		chromedp.Sleep(time.Second * 2),
 	}
 
 	if err := chromedp.Run(ctx, tasks); err != nil {
@@ -114,7 +114,7 @@ func (p *i3lockPlugin) takeScreenShot() ([]byte, error) {
 	var imgData []byte
 	tasks := chromedp.Tasks{}
 	if time.Since(p.lastReload) > time.Minute*5 {
-		tasks = append(tasks, chromedp.Reload(), chromedp.Sleep(time.Millisecond*500))
+		tasks = append(tasks, chromedp.Reload(), chromedp.Sleep(time.Second * 2))
 		p.lastReload = time.Now()
 	}
 	tasks = append(tasks, chromedp.Screenshot(".tradingview-widget-container > iframe", &imgData, chromedp.NodeVisible))
