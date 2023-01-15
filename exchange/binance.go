@@ -44,6 +44,7 @@ func (b *binance) Start(ctx context.Context, update chan<- Market) error {
 		b.initMarket(market)
 		update <- *market
 		runEvery(context.Background(), time.Hour, func() {
+			time.Sleep(time.Second*10)
 			b.initMarket(market)
 		})
 	}
