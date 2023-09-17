@@ -21,6 +21,9 @@ var flags = struct {
 	Polybar                   bool
 	PolybarSort               string
 	PolybarShortOnlyOnWeekend bool
+	Waybar                    bool
+	WaybarSort                string
+	WaybarShortOnlyOnWeekend  bool
 	I3LockPlugin              int
 	JSON                      bool
 	JSONLine                  bool
@@ -69,6 +72,13 @@ var rootCmd = &cobra.Command{
 				Icon:               false,
 			}))
 		}
+		if flags.Waybar {
+			formats = append(formats, format.NewWaybar(format.WaybarConfig{
+				ShortOnlyOnWeekend: flags.WaybarShortOnlyOnWeekend,
+				Sort:               flags.WaybarSort,
+				Icon:               false,
+			}))
+		}
 		if flags.I3LockPlugin > 0 {
 			formats = append(formats, format.NewI3LockPluginFormatter(flags.I3LockPlugin))
 		}
@@ -105,6 +115,10 @@ func init() {
 	rootCmd.Flags().BoolVar(&flags.Polybar, "polybar", false, "polybar format")
 	rootCmd.Flags().StringVar(&flags.PolybarSort, "polybar-sort", "keep", "sort markets by change. values: keep, inc, dec")
 	rootCmd.Flags().BoolVar(&flags.PolybarShortOnlyOnWeekend, "polybar-weekend-short", false, "short display on weekend")
+	
+	rootCmd.Flags().BoolVar(&flags.Waybar, "waybar", false, "waybar format")
+	rootCmd.Flags().StringVar(&flags.WaybarSort, "waybar-sort", "keep", "sort markets by change. values: keep, inc, dec")
+	rootCmd.Flags().BoolVar(&flags.WaybarShortOnlyOnWeekend, "waybar-weekend-short", false, "short display on weekend")
 
 	rootCmd.Flags().IntVar(&flags.I3LockPlugin, "i3lock-plugin", 100, "generate images for i3lock plugin")
 
