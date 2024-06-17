@@ -73,7 +73,7 @@ func (i *WaybarFormat) formatPrice(market exchange.Market) string {
 		}
 		return humanize.Comma(int64(market.Candle.Close))
 	}
-	return fmt.Sprintf("%.0f", market.Candle.Close)
+	return fmt.Sprintf("%.3f", market.Candle.Close)
 }
 
 func (i *WaybarFormat) openTradingViewCmd(market exchange.Market) string {
