@@ -115,12 +115,12 @@ func init() {
 	rootCmd.Flags().BoolVar(&flags.Polybar, "polybar", false, "polybar format")
 	rootCmd.Flags().StringVar(&flags.PolybarSort, "polybar-sort", "keep", "sort markets by change. values: keep, inc, dec")
 	rootCmd.Flags().BoolVar(&flags.PolybarShortOnlyOnWeekend, "polybar-weekend-short", false, "short display on weekend")
-	
+
 	rootCmd.Flags().BoolVar(&flags.Waybar, "waybar", false, "waybar format")
 	rootCmd.Flags().StringVar(&flags.WaybarSort, "waybar-sort", "keep", "sort markets by change. values: keep, inc, dec")
 	rootCmd.Flags().BoolVar(&flags.WaybarShortOnlyOnWeekend, "waybar-weekend-short", false, "short display on weekend")
 
-	rootCmd.Flags().IntVar(&flags.I3LockPlugin, "i3lock-plugin", 100, "generate images for i3lock plugin")
+	rootCmd.Flags().IntVar(&flags.I3LockPlugin, "i3lock-plugin", 0, "generate images for i3lock plugin")
 
 	rootCmd.Flags().BoolVar(&flags.JSON, "json", false, "json format")
 	rootCmd.Flags().BoolVar(&flags.JSONLine, "jsonl", false, "json line format")
