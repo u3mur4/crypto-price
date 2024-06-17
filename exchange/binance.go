@@ -7,13 +7,12 @@ import (
 	"strings"
 	"time"
 
-	binancelib "github.com/adshao/go-binance/v2"
+	binance_connector "github.com/binance/binance-connector-go"
 	"github.com/sirupsen/logrus"
 )
 
 type binance struct {
 	markets []*Market
-	client *binancelib.Client
 }
 
 func (b binance) getChartTicker(market *Market) string {
@@ -21,7 +20,8 @@ func (b binance) getChartTicker(market *Market) string {
 }
 
 func (b binance) initMarket(market *Market) error {
-	kline := b.client.NewKlinesService()
+	client := binance_connector.NewClient("", "")
+	kline := client.NewKlinesService()
 	kline = kline.Symbol(b.getChartTicker(market)).Interval("1d").Limit(1)
 	result, err := kline.Do(context.Background())
 	if err != nil {
@@ -44,23 +44,27 @@ func (b *binance) Start(ctx context.Context, update chan<- Market) error {
 		b.initMarket(market)
 		update <- *market
 		runEvery(context.Background(), time.Hour, func() {
-			time.Sleep(time.Second*10)
+			time.Sleep(time.Second * 10)
 			b.initMarket(market)
 		})
 	}
 
-	miniHandler := func(event binancelib.WsAllMiniMarketsStatEvent) {
-		for _, marketEvent := range event {
-			for _, market := range b.markets {
-				if strings.EqualFold(b.getChartTicker(market), marketEvent.Symbol) {
-					price, err := strconv.ParseFloat(marketEvent.LastPrice, 64)
-					if err != nil {
-						logrus.WithError(err).WithField("market", marketEvent.Symbol).Error("cannot parse price")
-						continue
-					}
-					market.Candle.Update(price)
-					update <- *market
+	stream := binance_connector.NewWebsocketStreamClient(true)
+	symbolIntervalPair := make(map[string]string)
+	for _, market := range b.markets {
+		symbolIntervalPair[b.getChartTicker(market)] = "5m"
+	}
+
+	handler := func(event *binance_connector.WsKlineEvent) {
+		for _, market := range b.markets {
+			if strings.EqualFold(b.getChartTicker(market), event.Symbol) {
+				price, err := strconv.ParseFloat(event.Kline.Close, 64)
+				if err != nil {
+					logrus.WithError(err).WithField("market", event.Symbol).Error("cannot parse price")
+					continue
 				}
+				market.Candle.Update(price)
+				update <- *market
 			}
 		}
 	}
@@ -70,7 +74,7 @@ func (b *binance) Start(ctx context.Context, update chan<- Market) error {
 		errC <- err
 	}
 
-	doneC, stopC, err := binancelib.WsAllMiniMarketsStatServe(miniHandler, errHandler)
+	doneC, stopC, err := stream.WsCombinedKlineServe(symbolIntervalPair, handler, errHandler)
 	if err != nil {
 		return err
 	}
@@ -89,6 +93,5 @@ func (b *binance) Start(ctx context.Context, update chan<- Market) error {
 
 func NewBinance() Exchange {
 	return &binance{
-		client: binancelib.NewClient("", ""),
 	}
 }
