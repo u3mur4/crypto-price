@@ -20,6 +20,7 @@ type WaybarConfig struct {
 type WaybarFormat struct {
 	markets   map[string]exchange.Market
 	showPrice map[string]bool
+	showColor map[string]bool
 	config    WaybarConfig
 	keys      []string
 }
@@ -29,6 +30,7 @@ func NewWaybar(config WaybarConfig) Formatter {
 		markets:   make(map[string]exchange.Market),
 		config:    config,
 		showPrice: make(map[string]bool),
+		showColor: make(map[string]bool),
 	}
 }
 
@@ -42,11 +44,23 @@ func (p *WaybarFormat) Open() {
 			}
 
 			market := r.FormValue("market")
-			if showPrice, ok := p.showPrice[market]; ok {
-				p.showPrice[market] = !showPrice
-				// force to render immediately
-				p.Show(p.markets[market])
+			if _, ok := p.markets[market]; !ok {
+				return
 			}
+
+			switch r.URL.Path {
+			case "/toggle_price":
+				if showPrice, ok := p.showPrice[market]; ok {
+					p.showPrice[market] = !showPrice
+				}
+			case "/toggle_color":
+				if showColor, ok := p.showColor[market]; ok {
+					p.showColor[market] = !showColor
+				}
+			}
+
+			// force to render immediately
+			p.Show(p.markets[market])
 		}
 	}
 
@@ -112,6 +126,10 @@ func (i *WaybarFormat) Show(market exchange.Market) {
 	if _, ok := i.showPrice[key]; !ok {
 		i.showPrice[key] = true
 	}
+	
+	if _, ok := i.showColor[key]; !ok {
+		i.showColor[key] = true
+	}
 
 	// on weekend only label is visible
 	weekDay := time.Now().Weekday()
@@ -130,7 +148,11 @@ func (i *WaybarFormat) Show(market exchange.Market) {
 		// {}
 
 		builder.WriteString("<span color='")
-		builder.WriteString(color(market.Candle).Hex())
+		if showColor, ok := i.showColor[k]; ok && showColor {
+			builder.WriteString(color(market.Candle).Hex())
+		} else {
+			builder.WriteString("#FFFFFF")
+		}
 		builder.WriteString("'>")
 
 		builder.WriteString(strings.ToUpper(market.Base))
