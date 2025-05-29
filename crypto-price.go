@@ -48,7 +48,9 @@ var rootCmd = &cobra.Command{
 
 		f, _ := os.Create("/tmp/crypto-tracker.log")
 		logrus.SetOutput(f)
+		// logrus.SetOutput(os.Stdout)
 		logrus.SetLevel(logrus.DebugLevel)
+		logrus.Info("Starting crypto price tracker...")
 
 		aggregator := exchange.NewAggregator(exchange.Options{
 			ConvertToSatoshi: flags.Satoshi,
@@ -99,7 +101,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.Flags().BoolVar(&flags.Debug, "debug", false, "Enable debug log")
+	rootCmd.Flags().BoolVar(&flags.Debug, "debug", true, "Enable debug log")
 	//
 	rootCmd.Flags().BoolVar(&flags.Satoshi, "satoshi", false, "convert btc market price to satoshi")
 
