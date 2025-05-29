@@ -2,6 +2,8 @@ github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 h1:JYp7IbQjafo
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/binance/binance-connector-go v0.5.2 h1:FZvVn6Tsy1XQzMagwnoDF6yvlawQE4wimAZEmpi6PAA=
 github.com/binance/binance-connector-go v0.5.2/go.mod h1:p9rdJx+s01YdOhyjJRM+HxoouocCnuLeM2yhSftHkWQ=
+github.com/binance/binance-connector-go v0.8.0 h1:wFMrOC6h51Tf+BmnbBPMxb60HpDFhRhvsXp+KxJ1EyY=
+github.com/binance/binance-connector-go v0.8.0/go.mod h1:BFC8g1sfebv6/rahVeQU1kC5TqkdlcqeFfSVcNberlc=
 github.com/bitly/go-simplejson v0.5.1 h1:xgwPbetQScXt1gh9BmoJ6j9JMr3TElvuIyjR8pgdoow=
 github.com/bitly/go-simplejson v0.5.1/go.mod h1:YOPVLzCfwK14b4Sff3oP1AmGhI9T9Vsg84etUnlyp+Q=
 github.com/cenkalti/backoff v2.2.1+incompatible h1:tNowT99t7UNflLxfYYSlKYsBpXdEet03Pg2g16Swow4=

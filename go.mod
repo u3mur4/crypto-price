@@ -1,10 +1,10 @@
 module github.com/u3mur4/crypto-price
 
-go 1.22
+go 1.24.3
 
 require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
-	github.com/binance/binance-connector-go v0.5.2
+	github.com/binance/binance-connector-go v0.8.0
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/chromedp/cdproto v0.0.0-20220924210414-0e3390be1777
 	github.com/chromedp/chromedp v0.8.6
