@@ -60,6 +60,11 @@ func (p *WaybarFormat) Open() {
 				}
 			}
 
+			// update last update time
+			// this is needed when waybar to re-render do not show stale data
+			m := p.markets[market]
+			m.LastUpdate = time.Now()
+			p.markets[market] = m
 			// force to render immediately
 			p.Show(p.markets[market])
 		}
