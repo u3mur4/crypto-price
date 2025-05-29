@@ -31,6 +31,7 @@ func (b binance) initMarket(market *Market) error {
 	market.Candle.Open, _ = strconv.ParseFloat(result[0].Open, 64)
 	market.Candle.Close, _ = strconv.ParseFloat(result[0].Close, 64)
 	market.Candle.Low, _ = strconv.ParseFloat(result[0].Low, 64)
+	market.LastUpdate = time.Now()
 	return nil
 }
 
@@ -41,7 +42,10 @@ func (b *binance) Register(base string, quote string) error {
 
 func (b *binance) Start(ctx context.Context, update chan<- Market) error {
 	for _, market := range b.markets {
-		b.initMarket(market)
+		err := b.initMarket(market)
+		if err != nil {
+			return err
+		}
 		update <- *market
 		runEvery(context.Background(), time.Hour, func() {
 			time.Sleep(time.Second * 10)
