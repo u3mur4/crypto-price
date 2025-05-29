@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"github.com/lucasb-eyer/go-colorful"
 	"github.com/u3mur4/crypto-price/exchange"
 )
 
@@ -126,7 +127,7 @@ func (i *WaybarFormat) Show(market exchange.Market) {
 	if _, ok := i.showPrice[key]; !ok {
 		i.showPrice[key] = true
 	}
-	
+
 	if _, ok := i.showColor[key]; !ok {
 		i.showColor[key] = true
 	}
@@ -135,6 +136,13 @@ func (i *WaybarFormat) Show(market exchange.Market) {
 	weekDay := time.Now().Weekday()
 	if i.config.ShortOnlyOnWeekend && (weekDay == time.Saturday || weekDay == time.Sunday) {
 		i.showPrice[key] = false
+	}
+
+	colorWithStaleness := func(LastUpdate time.Time, candle exchange.Candle) colorful.Color {
+		if time.Since(LastUpdate) > time.Second * 5 {
+			return colorful.Color{R: 0.5, G: 0.5, B: 0.5} // gray
+		}
+		return color(candle)
 	}
 
 	// format all market
@@ -149,7 +157,7 @@ func (i *WaybarFormat) Show(market exchange.Market) {
 
 		builder.WriteString("<span color='")
 		if showColor, ok := i.showColor[k]; ok && showColor {
-			builder.WriteString(color(market.Candle).Hex())
+			builder.WriteString(colorWithStaleness(market.LastUpdate, market.Candle).Hex())
 		} else {
 			builder.WriteString("#FFFFFF")
 		}

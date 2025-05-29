@@ -129,9 +129,26 @@ func (c *Aggregator) startAllExchange() error {
 		}(name)
 	}
 
-	for market := range c.update {
-		c.showMarket(market)
+	ticker := time.NewTicker(time.Second * 3)
+	var market Market
+	for {
+		select {
+			case <-ticker.C:
+				// call showMarket even if market is not updated
+				if time.Since(market.LastUpdate) > time.Second*5 {
+					c.showMarket(market)
+				}
+			case data, ok := <-c.update:
+				if !ok {
+					logrus.Info("update channel closed")
+					break
+				}
+				market = data
+				c.showMarket(data)
+				// ticker.Reset(time.Second * 1)
+		}
 	}
+
 
 	return nil
 }
