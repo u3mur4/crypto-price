@@ -19,7 +19,7 @@ type WaybarConfig struct {
 }
 
 type WaybarFormat struct {
-	markets   map[string]exchange.Market
+	markets   map[string]exchange.MarketDisplayInfo
 	showPrice map[string]bool
 	showColor map[string]bool
 	config    WaybarConfig
@@ -28,7 +28,7 @@ type WaybarFormat struct {
 
 func NewWaybar(config WaybarConfig) Formatter {
 	return &WaybarFormat{
-		markets:   make(map[string]exchange.Market),
+		markets:   make(map[string]exchange.MarketDisplayInfo),
 		config:    config,
 		showPrice: make(map[string]bool),
 		showColor: make(map[string]bool),
@@ -60,11 +60,6 @@ func (p *WaybarFormat) Open() {
 				}
 			}
 
-			// update last update time
-			// this is needed when waybar to re-render do not show stale data
-			m := p.markets[market]
-			m.LastUpdate = time.Now()
-			p.markets[market] = m
 			// force to render immediately
 			p.Show(p.markets[market])
 		}
@@ -120,14 +115,15 @@ func (i *WaybarFormat) tooglePrice(market, data string) string {
 	return b.String()
 }
 
-func (i *WaybarFormat) Show(market exchange.Market) {
+func (i *WaybarFormat) Show(info exchange.MarketDisplayInfo) {
+	market := info.Market
 	key := market.Exchange + market.Base + market.Quote
 
 	// keep output consistent
 	if _, ok := i.markets[key]; !ok {
 		i.keys = append(i.keys, key)
 	}
-	i.markets[key] = market
+	i.markets[key] = info
 
 	if _, ok := i.showPrice[key]; !ok {
 		i.showPrice[key] = true
@@ -143,17 +139,18 @@ func (i *WaybarFormat) Show(market exchange.Market) {
 		i.showPrice[key] = false
 	}
 
-	colorWithStaleness := func(LastUpdate time.Time, candle exchange.Candle) colorful.Color {
-		if time.Since(LastUpdate) > time.Second * 5 {
+	colorWithNetworkConnectionStatus := func(info exchange.MarketDisplayInfo) colorful.Color {
+		if time.Since(info.LastConfirmedConnectionTime) > time.Second * 5 || time.Since(info.Market.LastUpdate) > time.Second * 30 {
 			return colorful.Color{R: 0.5, G: 0.5, B: 0.5} // gray
 		}
-		return color(candle)
+		return color(info.Market.Candle)
 	}
 
 	// format all market
 	builder := strings.Builder{}
 	for _, k := range i.keys {
-		market := i.markets[k]
+		info := i.markets[k]
+		market := info.Market
 
 		price := i.formatPrice(market)
 		quote := i.formatQuote(market)
@@ -162,7 +159,7 @@ func (i *WaybarFormat) Show(market exchange.Market) {
 
 		builder.WriteString("<span color='")
 		if showColor, ok := i.showColor[k]; ok && showColor {
-			builder.WriteString(colorWithStaleness(market.LastUpdate, market.Candle).Hex())
+			builder.WriteString(colorWithNetworkConnectionStatus(info).Hex())
 		} else {
 			builder.WriteString("#FFFFFF")
 		}

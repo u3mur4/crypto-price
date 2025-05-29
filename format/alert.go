@@ -132,7 +132,9 @@ func (j *alertFormat) triggerAlert(alert *alert) {
 	cmd.Process.Release()
 }
 
-func (j *alertFormat) Show(market exchange.Market) {
+func (j *alertFormat) Show(info exchange.MarketDisplayInfo) {
+	market := info.Market
+
 	id := market.Exchange + ":" + market.Base + "-" + market.Quote
 	for _, alert := range j.alerts {
 		if strings.EqualFold(id, alert.ID) && alert.Enabled {

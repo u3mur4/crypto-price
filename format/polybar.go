@@ -18,7 +18,7 @@ type PolybarConfig struct {
 }
 
 type polybarFormat struct {
-	markets   map[string]exchange.Market
+	markets   map[string]exchange.MarketDisplayInfo
 	showPrice map[string]bool
 	config    PolybarConfig
 	keys      []string
@@ -26,7 +26,7 @@ type polybarFormat struct {
 
 func NewPolybar(config PolybarConfig) Formatter {
 	return &polybarFormat{
-		markets:   make(map[string]exchange.Market),
+		markets:   make(map[string]exchange.MarketDisplayInfo),
 		config:    config,
 		showPrice: make(map[string]bool),
 	}
@@ -100,14 +100,16 @@ func (i *polybarFormat) tooglePrice(market, data string) string {
 	return b.String()
 }
 
-func (i *polybarFormat) Show(market exchange.Market) {
+func (i *polybarFormat) Show(info exchange.MarketDisplayInfo) {
+	market := info.Market
+
 	key := market.Exchange + market.Base + market.Quote
 
 	// keep output consistent
 	if _, ok := i.markets[key]; !ok {
 		i.keys = append(i.keys, key)
 	}
-	i.markets[key] = market
+	i.markets[key] = info
 
 	if _, ok := i.showPrice[key]; !ok {
 		i.showPrice[key] = true
@@ -122,10 +124,10 @@ func (i *polybarFormat) Show(market exchange.Market) {
 	// format all market
 	builder := strings.Builder{}
 	for _, k := range i.keys {
-		market := i.markets[k]
+		info := i.markets[k]
 
-		price := i.formatPrice(market)
-		quote := i.formatQuote(market)
+		price := i.formatPrice(info.Market)
+		quote := i.formatQuote(info.Market)
 		// icon := i.getIcon(market)
 
 		// // use icon or the base
@@ -138,7 +140,7 @@ func (i *polybarFormat) Show(market exchange.Market) {
 		// builder.WriteString(tmp)
 
 		builder.WriteString("%{F")
-		builder.WriteString(color(market.Candle).Hex())
+		builder.WriteString(color(info.Market.Candle).Hex())
 		builder.WriteString("}")
 
 		// builder.WriteString(i.openTradingViewCmd(chart))

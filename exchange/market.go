@@ -43,6 +43,11 @@ type Market struct {
 	LastUpdate time.Time
 }
 
+type MarketDisplayInfo struct {
+	Market Market
+	LastConfirmedConnectionTime time.Time
+}
+
 func newMarket(name, base, quote string) *Market {
 	return &Market{
 		Exchange: name,

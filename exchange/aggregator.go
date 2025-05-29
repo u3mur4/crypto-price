@@ -12,7 +12,7 @@ import (
 
 type Formatter interface {
 	Open()
-	Show(market Market)
+	Show(info MarketDisplayInfo)
 	Close()
 }
 
@@ -69,15 +69,15 @@ func (c *Aggregator) register(format string) error {
 	return nil
 }
 
-func (c *Aggregator) applyOptions(market *Market) {
-	if c.options.ConvertToSatoshi && strings.EqualFold(market.Quote, "btc") {
-		market.Candle = market.Candle.ToSatoshi()
+func (c *Aggregator) applyOptions(info *MarketDisplayInfo) {
+	if c.options.ConvertToSatoshi && strings.EqualFold(info.Market.Quote, "btc") {
+		info.Market.Candle = info.Market.Candle.ToSatoshi()
 	}
 }
 
-func (c *Aggregator) showMarket(market Market) {
-	c.applyOptions(&market)
-	c.formatter.Show(market)
+func (c *Aggregator) showMarket(info MarketDisplayInfo) {
+	c.applyOptions(&info)
+	c.formatter.Show(info)
 }
 
 func (c *Aggregator) startExchange(ctx context.Context, name string) error {
@@ -130,34 +130,27 @@ func (c *Aggregator) startAllExchange() error {
 	}
 
 	ticker := time.NewTicker(time.Second * 5)
-	var market Market
+	var info MarketDisplayInfo
 	for {
 		select {
 		case <-ticker.C:
-			// There was no updated market in the last 10 seconds
-			if time.Since(market.LastUpdate) >= time.Second*10 {
-				// Check if we have network connection
-				if HasInternetConnection() {
-					// If we have network connection, we can update the market time
-					market.LastUpdate = time.Now()
-				}
-				// Show the last market data
-				// This will show the last market data even if there is no update
-				// The formatter cand handle stale data
-				c.showMarket(market)
+			// we don't have to check network connection if we have recently received any data
+			if time.Since(info.Market.LastUpdate) <= time.Second*5 {
+				info.LastConfirmedConnectionTime = time.Now()
+			} else if HasInternetConnection() {
+				info.LastConfirmedConnectionTime = time.Now()
 			}
+			c.showMarket(info)
 		case data, ok := <-c.update:
 			if !ok {
 				logrus.Info("update channel closed")
 				break
 			}
-			market = data
-			c.showMarket(data)
-			// ticker.Reset(time.Second * 1)
+			info.Market = data
+			info.LastConfirmedConnectionTime = time.Now()
+			c.showMarket(info)
 		}
 	}
-
-	return nil
 }
 
 func (c *Aggregator) Start() {

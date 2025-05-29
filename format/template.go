@@ -23,8 +23,8 @@ func NewTemplate(format string) Formatter {
 
 func (t templateFormat) Open() {}
 
-func (t templateFormat) Show(market exchange.Market) {
-	t.Template.Execute(t.Output, market)
+func (t templateFormat) Show(info exchange.MarketDisplayInfo) {
+	t.Template.Execute(t.Output, info)
 }
 
 func (t templateFormat) Close() {}

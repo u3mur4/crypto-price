@@ -124,7 +124,9 @@ func (p *i3lockPlugin) takeScreenShot() ([]byte, error) {
 	return imgData, nil
 }
 
-func (p *i3lockPlugin) Update(market exchange.Market) (bool, error) {
+func (p *i3lockPlugin) Update(info exchange.MarketDisplayInfo) (bool, error) {
+	market := info.Market
+
 	if !p.shouldCreateNewScreenshot(market) {
 		return false, nil
 	}
@@ -302,7 +304,9 @@ func (p *i3LockPluginFormatter) deleteFiles() error {
 	return nil
 }
 
-func (p *i3LockPluginFormatter) Show(market exchange.Market) {
+func (p *i3LockPluginFormatter) Show(info exchange.MarketDisplayInfo) {
+	market := info.Market
+
 	key := market.Exchange + market.Base + market.Quote
 
 	var plugin *i3lockPlugin = nil
@@ -314,7 +318,7 @@ func (p *i3LockPluginFormatter) Show(market exchange.Market) {
 		plugin = cacheData
 	}
 
-	requestUpdate, err := plugin.Update(market)
+	requestUpdate, err := plugin.Update(info)
 	if err != nil {
 		log.Println("i3lock plugin error: ", err)
 		return

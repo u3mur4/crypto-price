@@ -49,7 +49,9 @@ func convertCandles(candle exchange.Candle) (newCandles jsonCandle) {
 	}
 }
 
-func (j *jsonFormat) Show(market exchange.Market) {
+func (j *jsonFormat) Show(info exchange.MarketDisplayInfo) {
+	market := info.Market
+
 	b, _ := json.Marshal(&jsonChart{
 		Exchange: market.Exchange,
 		Base:     market.Base,
