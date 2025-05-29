@@ -129,26 +129,33 @@ func (c *Aggregator) startAllExchange() error {
 		}(name)
 	}
 
-	ticker := time.NewTicker(time.Second * 3)
+	ticker := time.NewTicker(time.Second * 5)
 	var market Market
 	for {
 		select {
-			case <-ticker.C:
-				// call showMarket even if market is not updated
-				if time.Since(market.LastUpdate) > time.Second*5 {
-					c.showMarket(market)
+		case <-ticker.C:
+			// There was no updated market in the last 10 seconds
+			if time.Since(market.LastUpdate) >= time.Second*10 {
+				// Check if we have network connection
+				if HasInternetConnection() {
+					// If we have network connection, we can update the market time
+					market.LastUpdate = time.Now()
 				}
-			case data, ok := <-c.update:
-				if !ok {
-					logrus.Info("update channel closed")
-					break
-				}
-				market = data
-				c.showMarket(data)
-				// ticker.Reset(time.Second * 1)
+				// Show the last market data
+				// This will show the last market data even if there is no update
+				// The formatter cand handle stale data
+				c.showMarket(market)
+			}
+		case data, ok := <-c.update:
+			if !ok {
+				logrus.Info("update channel closed")
+				break
+			}
+			market = data
+			c.showMarket(data)
+			// ticker.Reset(time.Second * 1)
 		}
 	}
-
 
 	return nil
 }
