@@ -86,7 +86,6 @@ func (b *binance) Start(ctx context.Context, update chan<- Market) error {
 	case <-doneC:
 		return fmt.Errorf("exchange stopped")
 	case err := <-errC:
-		stopC <- struct{}{}
 		return err
 	}
 }
