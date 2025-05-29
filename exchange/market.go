@@ -1,5 +1,7 @@
 package exchange
 
+import "time"
+
 type Candle struct {
 	Open  float64
 	High  float64
@@ -34,10 +36,11 @@ func (m Candle) ToSatoshi() Candle {
 }
 
 type Market struct {
-	Exchange string
-	Base     string
-	Quote    string
-	Candle   Candle
+	Exchange   string
+	Base       string
+	Quote      string
+	Candle     Candle
+	LastUpdate time.Time
 }
 
 func newMarket(name, base, quote string) *Market {
@@ -46,5 +49,6 @@ func newMarket(name, base, quote string) *Market {
 		Base:     base,
 		Quote:    quote,
 		Candle:   Candle{},
+		LastUpdate: time.Time{},
 	}
 }

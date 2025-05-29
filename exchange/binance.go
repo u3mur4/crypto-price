@@ -64,6 +64,7 @@ func (b *binance) Start(ctx context.Context, update chan<- Market) error {
 					continue
 				}
 				market.Candle.Update(price)
+				market.LastUpdate = time.Now()
 				update <- *market
 			}
 		}
