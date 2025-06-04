@@ -54,42 +54,39 @@ var rootCmd = &cobra.Command{
 
 		aggregator := exchange.NewAggregator(exchange.Options{
 			ConvertToSatoshi: flags.Satoshi,
-		}, observer.NewPolybar(observer.PolybarConfig{}))
+		}, observer.NewPolybarOutput(observer.PolybarConfig{}))
 
-		formats := []observer.Formatter{}
+		observers := []exchange.Formatter{}
 
 		if flags.JSON {
-			formats = append(formats, observer.NewJSON())
+			observers = append(observers, observer.NewJSONOutput())
 		}
 		if flags.Server {
-			formats = append(formats, observer.NewServer())
+			observers = append(observers, observer.NewMarketAPIServer())
 		}
 		if flags.Template != "" {
-			formats = append(formats, observer.NewTemplate(flags.Template))
+			observers = append(observers, observer.NewTemplateOutput(flags.Template))
 		}
 		if flags.Polybar {
-			formats = append(formats, observer.NewPolybar(observer.PolybarConfig{
+			observers = append(observers, observer.NewPolybarOutput(observer.PolybarConfig{
 				ShortOnlyOnWeekend: flags.PolybarShortOnlyOnWeekend,
 				Sort:               flags.PolybarSort,
 				Icon:               false,
 			}))
 		}
 		if flags.Waybar {
-			formats = append(formats, observer.NewWaybar(observer.WaybarConfig{
+			observers = append(observers, observer.NewWaybarOutput(observer.WaybarConfig{
 				ShortOnlyOnWeekend: flags.WaybarShortOnlyOnWeekend,
 				Sort:               flags.WaybarSort,
 				Icon:               false,
 			}))
 		}
-		if flags.I3LockPlugin > 0 {
-			formats = append(formats, observer.NewI3LockPluginFormatter(flags.I3LockPlugin))
-		}
 
 		if flags.Alert {
-			formats = append(formats, observer.NewAlert())
+			observers = append(observers, observer.NewMarketAlerter())
 		}
 
-		aggregator.SetFormatter(observer.NewMulti(formats...))
+		aggregator.AddObservers(observers...)
 
 		err := aggregator.Register(args...)
 		if err != nil {

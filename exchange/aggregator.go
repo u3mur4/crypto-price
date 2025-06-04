@@ -43,8 +43,8 @@ func NewAggregator(options Options, formatter Formatter) *Aggregator {
 	}
 }
 
-func (c *Aggregator) SetFormatter(formatter Formatter) {
-	c.formatter = formatter
+func (c *Aggregator) AddObservers(formatter ...Formatter) {
+	c.formatter = newMulti(formatter...)
 }
 
 // Register adds a new markets. The format is exchange:marketname
