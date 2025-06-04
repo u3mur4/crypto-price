@@ -2,11 +2,12 @@ package observer
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 
+	"github.com/sirupsen/logrus"
 	"github.com/u3mur4/crypto-price/exchange"
+	"github.com/u3mur4/crypto-price/internal/logger"
 )
 
 type jsonCandle struct {
@@ -27,39 +28,36 @@ type jsonChart struct {
 
 type JSONOutput struct {
 	Output io.Writer
+	log    *logrus.Entry
 }
 
 // NewJSON displays the market as json format
 func NewJSONOutput() *JSONOutput {
 	return &JSONOutput{
 		Output: os.Stdout,
+		log:    logger.Log().WithField("observer", "json_output"),
 	}
 }
 
-func (j *JSONOutput) Open() {}
-
-func convertCandles(candle exchange.Candle) (newCandles jsonCandle) {
-	return jsonCandle{
-		High:    candle.High,
-		Open:    candle.Open,
-		Close:   candle.Close,
-		Low:     candle.Low,
-		Percent: candle.Percent(),
-		Color:   color(candle).Hex(),
+func (j *JSONOutput) toJSONStruct(info exchange.MarketDisplayInfo) jsonChart {
+	return jsonChart{
+		Exchange: info.Market.Exchange,
+		Base:     info.Market.Base,
+		Quote:    info.Market.Quote,
+		Candle: jsonCandle{
+			High:    info.Market.Candle.High,
+			Open:    info.Market.Candle.Open,
+			Close:   info.Market.Candle.Close,
+			Low:     info.Market.Candle.Low,
+			Percent: info.Market.Candle.Percent(),
+			Color:   getInterpolatedColorFor(info.Market.Candle).Hex(),
+		},
 	}
 }
 
-func (j *JSONOutput) Show(info exchange.MarketDisplayInfo) {
-	market := info.Market
-
-	b, _ := json.Marshal(&jsonChart{
-		Exchange: market.Exchange,
-		Base:     market.Base,
-		Quote:    market.Quote,
-		Candle:   convertCandles(market.Candle),
-	})
-
-	fmt.Fprintf(j.Output, "%s\n", string(b))
+func (j *JSONOutput) Update(info exchange.MarketDisplayInfo) {
+	err := json.NewEncoder(j.Output).Encode(j.toJSONStruct(info))
+	if err != nil {
+		j.log.WithError(err).Debug("failed to encode market info to json")
+	}
 }
-
-func (j *JSONOutput) Close() {}
