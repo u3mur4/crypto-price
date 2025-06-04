@@ -47,6 +47,6 @@ var defaultColorMap = colorMap{
 	{mustParseHex("#007600"), +100.0},
 }
 
-func color(candle exchange.Candle) colorful.Color {
+func getInterpolatedColorFor(candle exchange.Candle) colorful.Color {
 	return defaultColorMap.getInterpolatedColorFor(candle.Percent())
 }
