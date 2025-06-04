@@ -126,10 +126,9 @@ func (j *MarketAlerter) triggerAlertCmd(alert *alertDefinition) {
 
 func (j *MarketAlerter) Update(info exchange.MarketDisplayInfo) {
 	market := info.Market
-	id := market.Exchange + ":" + market.Base + "-" + market.Quote
 
 	for _, alert := range j.alerts {
-		if strings.EqualFold(id, alert.ID) && alert.Enabled {
+		if strings.EqualFold(info.Market.Key(), alert.ID) && alert.Enabled {
 			gracePeriod, err := time.ParseDuration(alert.GracePeriod)
 			if err == nil && !alert.LastAlert.IsZero() {
 				fmt.Println(gracePeriod, alert.LastAlert)
