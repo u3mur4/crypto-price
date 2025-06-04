@@ -129,13 +129,13 @@ func (c *Aggregator) startAllExchange() error {
 		}(name)
 	}
 
-	ticker := time.NewTicker(time.Second * 5)
+	ticker := time.NewTicker(time.Second * 4)
 	var info MarketDisplayInfo
 	for {
 		select {
 		case <-ticker.C:
 			// we don't have to check network connection if we have recently received any data
-			if time.Since(info.Market.LastUpdate) <= time.Second*5 {
+			if time.Since(info.Market.LastUpdate) <= time.Second*7 {
 				info.LastConfirmedConnectionTime = time.Now()
 			} else if HasInternetConnection() {
 				info.LastConfirmedConnectionTime = time.Now()
