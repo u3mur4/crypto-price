@@ -39,29 +39,30 @@ func NewPolybarOutput(config PolybarConfig) *PolybarOutput {
 	return polybar
 }
 
-func (p *PolybarOutput) startConfigServer() {
+func (polybar *PolybarOutput) startConfigServer() {
 	process := func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "POST":
 			if err := r.ParseForm(); err != nil {
-				p.log.WithError(err).Error("Failed to parse form")
+				polybar.log.WithError(err).Error("Failed to parse form")
 				return
 			}
 
 			market := r.FormValue("market")
-			if showPrice, ok := p.showPrice[market]; ok {
-				p.showPrice[market] = !showPrice
-				p.log.WithField("market", market).WithField("show", p.showPrice[market]).Info("Toggled price visibility")
-				p.Update(p.markets[market])
+			if showPrice, ok := polybar.showPrice[market]; ok {
+				polybar.showPrice[market] = !showPrice
+				polybar.log.WithField("market", market).WithField("show", polybar.showPrice[market]).Info("Toggled price visibility")
+				polybar.Update(polybar.markets[market])
 			}
 		}
 	}
 
 	http.HandleFunc("/", process)
-	p.log.WithField("port", 60253).Info("Starting config server")
-	err := http.ListenAndServe(":60253", nil)
+	port := ":60253"
+	polybar.log.WithField("port", port).Info("Starting config server")
+	err := http.ListenAndServe(port, nil)
 	if err != nil {
-		p.log.WithError(err).Error("Config server stopped")
+		polybar.log.WithError(err).Error("Config server stopped")
 		return
 	}
 }
