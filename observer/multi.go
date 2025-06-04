@@ -1,4 +1,4 @@
-package format
+package observer
 
 import "github.com/u3mur4/crypto-price/exchange"
 

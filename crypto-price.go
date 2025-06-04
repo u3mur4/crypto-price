@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/u3mur4/crypto-price/exchange"
-	"github.com/u3mur4/crypto-price/format"
+	"github.com/u3mur4/crypto-price/observer"
 )
 
 var flags = struct {
@@ -54,42 +54,42 @@ var rootCmd = &cobra.Command{
 
 		aggregator := exchange.NewAggregator(exchange.Options{
 			ConvertToSatoshi: flags.Satoshi,
-		}, format.NewPolybar(format.PolybarConfig{}))
+		}, observer.NewPolybar(observer.PolybarConfig{}))
 
-		formats := []format.Formatter{}
+		formats := []observer.Formatter{}
 
 		if flags.JSON {
-			formats = append(formats, format.NewJSON())
+			formats = append(formats, observer.NewJSON())
 		}
 		if flags.Server {
-			formats = append(formats, format.NewServer())
+			formats = append(formats, observer.NewServer())
 		}
 		if flags.Template != "" {
-			formats = append(formats, format.NewTemplate(flags.Template))
+			formats = append(formats, observer.NewTemplate(flags.Template))
 		}
 		if flags.Polybar {
-			formats = append(formats, format.NewPolybar(format.PolybarConfig{
+			formats = append(formats, observer.NewPolybar(observer.PolybarConfig{
 				ShortOnlyOnWeekend: flags.PolybarShortOnlyOnWeekend,
 				Sort:               flags.PolybarSort,
 				Icon:               false,
 			}))
 		}
 		if flags.Waybar {
-			formats = append(formats, format.NewWaybar(format.WaybarConfig{
+			formats = append(formats, observer.NewWaybar(observer.WaybarConfig{
 				ShortOnlyOnWeekend: flags.WaybarShortOnlyOnWeekend,
 				Sort:               flags.WaybarSort,
 				Icon:               false,
 			}))
 		}
 		if flags.I3LockPlugin > 0 {
-			formats = append(formats, format.NewI3LockPluginFormatter(flags.I3LockPlugin))
+			formats = append(formats, observer.NewI3LockPluginFormatter(flags.I3LockPlugin))
 		}
 
 		if flags.Alert {
-			formats = append(formats, format.NewAlert())
+			formats = append(formats, observer.NewAlert())
 		}
 
-		aggregator.SetFormatter(format.NewMulti(formats...))
+		aggregator.SetFormatter(observer.NewMulti(formats...))
 
 		err := aggregator.Register(args...)
 		if err != nil {

@@ -1,4 +1,4 @@
-package format
+package observer
 
 import (
 	"fmt"
@@ -8,34 +8,31 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
-	"github.com/lucasb-eyer/go-colorful"
 	"github.com/u3mur4/crypto-price/exchange"
 )
 
-type WaybarConfig struct {
+type PolybarConfig struct {
 	Sort               string
 	Icon               bool
 	ShortOnlyOnWeekend bool
 }
 
-type WaybarFormat struct {
+type polybarFormat struct {
 	markets   map[string]exchange.MarketDisplayInfo
 	showPrice map[string]bool
-	showColor map[string]bool
-	config    WaybarConfig
+	config    PolybarConfig
 	keys      []string
 }
 
-func NewWaybar(config WaybarConfig) Formatter {
-	return &WaybarFormat{
+func NewPolybar(config PolybarConfig) Formatter {
+	return &polybarFormat{
 		markets:   make(map[string]exchange.MarketDisplayInfo),
 		config:    config,
 		showPrice: make(map[string]bool),
-		showColor: make(map[string]bool),
 	}
 }
 
-func (p *WaybarFormat) Open() {
+func (p *polybarFormat) Open() {
 	process := func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "POST":
@@ -45,23 +42,11 @@ func (p *WaybarFormat) Open() {
 			}
 
 			market := r.FormValue("market")
-			if _, ok := p.markets[market]; !ok {
-				return
+			if showPrice, ok := p.showPrice[market]; ok {
+				p.showPrice[market] = !showPrice
+				// force to render immediately
+				p.Show(p.markets[market])
 			}
-
-			switch r.URL.Path {
-			case "/toggle_price":
-				if showPrice, ok := p.showPrice[market]; ok {
-					p.showPrice[market] = !showPrice
-				}
-			case "/toggle_color":
-				if showColor, ok := p.showColor[market]; ok {
-					p.showColor[market] = !showColor
-				}
-			}
-
-			// force to render immediately
-			p.Show(p.markets[market])
 		}
 	}
 
@@ -69,7 +54,7 @@ func (p *WaybarFormat) Open() {
 	go http.ListenAndServe(":60253", nil)
 }
 
-func (p *WaybarFormat) formatQuote(market exchange.Market) string {
+func (p *polybarFormat) formatQuote(market exchange.Market) string {
 	if strings.EqualFold(market.Quote, "btc") {
 		// return "Ƀ"
 		return ""
@@ -81,17 +66,17 @@ func (p *WaybarFormat) formatQuote(market exchange.Market) string {
 	return ""
 }
 
-func (i *WaybarFormat) formatPrice(market exchange.Market) string {
+func (i *polybarFormat) formatPrice(market exchange.Market) string {
 	if strings.EqualFold(market.Quote, "btc") {
 		if market.Candle.Close < 1 {
 			return fmt.Sprintf("%.8f", market.Candle.Close)
 		}
 		return humanize.Comma(int64(market.Candle.Close))
 	}
-	return fmt.Sprintf("%.3f", market.Candle.Close)
+	return fmt.Sprintf("%.0f", market.Candle.Close)
 }
 
-func (i *WaybarFormat) openTradingViewCmd(market exchange.Market) string {
+func (i *polybarFormat) openTradingViewCmd(market exchange.Market) string {
 	b := strings.Builder{}
 
 	b.WriteString("chromium --newtab ")
@@ -105,7 +90,7 @@ func (i *WaybarFormat) openTradingViewCmd(market exchange.Market) string {
 	return "%{A1:" + strings.Replace(b.String(), ":", "\\:", -1) + ":}"
 }
 
-func (i *WaybarFormat) tooglePrice(market, data string) string {
+func (i *polybarFormat) tooglePrice(market, data string) string {
 	b := strings.Builder{}
 	b.WriteString("%{A1:")
 	b.WriteString("curl -d 'market=" + market + "' -X POST http\\://localhost\\:60253")
@@ -115,8 +100,9 @@ func (i *WaybarFormat) tooglePrice(market, data string) string {
 	return b.String()
 }
 
-func (i *WaybarFormat) Show(info exchange.MarketDisplayInfo) {
+func (i *polybarFormat) Show(info exchange.MarketDisplayInfo) {
 	market := info.Market
+
 	key := market.Exchange + market.Base + market.Quote
 
 	// keep output consistent
@@ -129,44 +115,37 @@ func (i *WaybarFormat) Show(info exchange.MarketDisplayInfo) {
 		i.showPrice[key] = true
 	}
 
-	if _, ok := i.showColor[key]; !ok {
-		i.showColor[key] = true
-	}
-
 	// on weekend only label is visible
 	weekDay := time.Now().Weekday()
 	if i.config.ShortOnlyOnWeekend && (weekDay == time.Saturday || weekDay == time.Sunday) {
 		i.showPrice[key] = false
 	}
 
-	colorWithNetworkConnectionStatus := func(info exchange.MarketDisplayInfo) colorful.Color {
-		if time.Since(info.LastConfirmedConnectionTime) > time.Second * 5 || time.Since(info.Market.LastUpdate) > time.Second * 30 {
-			return colorful.Color{R: 0.5, G: 0.5, B: 0.5} // gray
-		}
-		return color(info.Market.Candle)
-	}
-
 	// format all market
 	builder := strings.Builder{}
 	for _, k := range i.keys {
 		info := i.markets[k]
-		market := info.Market
 
-		price := i.formatPrice(market)
-		quote := i.formatQuote(market)
+		price := i.formatPrice(info.Market)
+		quote := i.formatQuote(info.Market)
+		// icon := i.getIcon(market)
 
-		// {}
+		// // use icon or the base
+		// 	tmp := fmt.Sprintf("<span foreground='%s'>%s: </span>", color(market).Hex(), strings.ToUpper(market.Base()))
+		// 	builder.WriteString(tmp)
+		// }
 
-		builder.WriteString("<span color='")
-		if showColor, ok := i.showColor[k]; ok && showColor {
-			builder.WriteString(colorWithNetworkConnectionStatus(info).Hex())
-		} else {
-			builder.WriteString("#FFFFFF")
-		}
-		builder.WriteString("'>")
+		// // print price
+		// tmp := fmt.Sprintf("<span foreground='%s'>%s%s (%+.1f%%)</span> ", color(market).Hex(), price, quote, percent(market))
+		// builder.WriteString(tmp)
 
-		builder.WriteString(strings.ToUpper(market.Base))
+		builder.WriteString("%{F")
+		builder.WriteString(color(info.Market.Candle).Hex())
+		builder.WriteString("}")
 
+		// builder.WriteString(i.openTradingViewCmd(chart))
+
+		builder.WriteString(i.tooglePrice(k, strings.ToUpper(market.Base)))
 		if showPrice, ok := i.showPrice[k]; ok && showPrice {
 			builder.WriteString(": ")
 			builder.WriteString(quote)
@@ -176,12 +155,14 @@ func (i *WaybarFormat) Show(info exchange.MarketDisplayInfo) {
 			builder.WriteString(" ")
 		}
 
-		builder.WriteString("</span>")
+		// builder.WriteString("%{A}")
+
+		builder.WriteString("%{F-}")
 	}
 
 	fmt.Fprintln(os.Stdout, builder.String())
 	// logrus.Debug(builder.String())
 }
 
-func (p WaybarFormat) Close() {
+func (p polybarFormat) Close() {
 }

@@ -1,4 +1,4 @@
-package format
+package observer
 
 import (
 	colorful "github.com/lucasb-eyer/go-colorful"
