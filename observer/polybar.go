@@ -129,7 +129,7 @@ func (polybar *PolybarOutput) Update(info exchange.MarketDisplayInfo) {
 		builder.WriteString("}")
 
 		builder.WriteString(polybar.tooglePrice(k, strings.ToUpper(market.Base)))
-		if showPrice, ok := polybar.showPrice[k]; ok && showPrice {
+		if showPrice, ok := polybar.showPrice[k]; !ok || showPrice {
 			builder.WriteString(": ")
 			builder.WriteString(quote)
 			builder.WriteString(price)
