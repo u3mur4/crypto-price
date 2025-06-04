@@ -10,10 +10,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Formatter interface {
-	Open()
-	Show(info MarketDisplayInfo)
-	Close()
+type Observer interface {
+	Update(info MarketDisplayInfo)
 }
 
 type Options struct {
@@ -26,25 +24,25 @@ type Aggregator struct {
 	options   Options
 	update    chan Market
 	cancel    context.CancelFunc
-	formatter Formatter
+	observers  []Observer
 }
 
 // NewAggregator creates a new default clients
-func NewAggregator(options Options, formatter Formatter) *Aggregator {
+func NewAggregator(options Options, observers... Observer) *Aggregator {
 	return &Aggregator{
 		exchanges: map[string]func() Exchange{
 			"binance": NewBinance,
 			"fake":    NewFake,
 		},
-		markets:   make(map[string][]string),
-		options:   options,
-		update:    make(chan Market, 1),
-		formatter: formatter,
+		markets:  make(map[string][]string),
+		options:  options,
+		update:   make(chan Market, 1),
+		observers: observers,
 	}
 }
 
-func (c *Aggregator) AddObservers(formatter ...Formatter) {
-	c.formatter = newMulti(formatter...)
+func (c *Aggregator) AddObservers(formatter ...Observer) {
+	c.observers = append(c.observers, formatter...)
 }
 
 // Register adds a new markets. The format is exchange:marketname
@@ -75,9 +73,11 @@ func (c *Aggregator) applyOptions(info *MarketDisplayInfo) {
 	}
 }
 
-func (c *Aggregator) showMarket(info MarketDisplayInfo) {
+func (c *Aggregator) notifyObservers(info MarketDisplayInfo) {
 	c.applyOptions(&info)
-	c.formatter.Show(info)
+	for _, observer := range c.observers {
+		observer.Update(info)
+	}
 }
 
 func (c *Aggregator) startExchange(ctx context.Context, name string) error {
@@ -105,8 +105,6 @@ func (c *Aggregator) startExchange(ctx context.Context, name string) error {
 }
 
 func (c *Aggregator) startAllExchange() error {
-	c.formatter.Open()
-	defer c.formatter.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	c.cancel = cancel
@@ -144,7 +142,7 @@ func (c *Aggregator) startAllExchange() error {
 			} else if HasInternetConnection() {
 				info.LastConfirmedConnectionTime = time.Now()
 			}
-			c.showMarket(info)
+			c.notifyObservers(info)
 		case data, ok := <-c.update:
 			if !ok {
 				logrus.Info("update channel closed")
@@ -152,7 +150,7 @@ func (c *Aggregator) startAllExchange() error {
 			}
 			info.Market = data
 			info.LastConfirmedConnectionTime = time.Now()
-			c.showMarket(info)
+			c.notifyObservers(info)
 		}
 	}
 }
