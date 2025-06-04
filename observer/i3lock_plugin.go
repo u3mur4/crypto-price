@@ -271,15 +271,15 @@ func (i *i3lockUpdateRequest) findPIDByName(name string) (pids []int, err error)
 	return pids, nil
 }
 
-type i3LockPluginFormatter struct {
+type I3LockPluginFormatter struct {
 	data      map[string]*i3lockPlugin
 	updater   *i3lockUpdateRequest
 	startYPos int
 	pluginId  int
 }
 
-func NewI3LockPluginFormatter(Y int) Formatter {
-	return &i3LockPluginFormatter{
+func NewI3LockPluginFormatter(Y int) *I3LockPluginFormatter {
+	return &I3LockPluginFormatter{
 		data:      make(map[string]*i3lockPlugin),
 		updater:   Newi3lockUpdateRequest(),
 		startYPos: Y,
@@ -287,11 +287,11 @@ func NewI3LockPluginFormatter(Y int) Formatter {
 	}
 }
 
-func (p *i3LockPluginFormatter) Open() {
+func (p *I3LockPluginFormatter) Open() {
 	p.deleteFiles()
 }
 
-func (p *i3LockPluginFormatter) deleteFiles() error {
+func (p *I3LockPluginFormatter) deleteFiles() error {
 	pngFiles, err := filepath.Glob("/tmp/i3lock/crypto-price*.png")
 	if err != nil {
 		return err
@@ -304,7 +304,7 @@ func (p *i3LockPluginFormatter) deleteFiles() error {
 	return nil
 }
 
-func (p *i3LockPluginFormatter) Show(info exchange.MarketDisplayInfo) {
+func (p *I3LockPluginFormatter) Show(info exchange.MarketDisplayInfo) {
 	market := info.Market
 
 	key := market.Exchange + market.Base + market.Quote
@@ -330,6 +330,6 @@ func (p *i3LockPluginFormatter) Show(info exchange.MarketDisplayInfo) {
 
 }
 
-func (p *i3LockPluginFormatter) Close() {
+func (p *I3LockPluginFormatter) Close() {
 	p.deleteFiles()
 }

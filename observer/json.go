@@ -19,24 +19,24 @@ type jsonCandle struct {
 }
 
 type jsonChart struct {
-	Exchange string        `json:"exchange"`
-	Base     string        `json:"base"`
-	Quote    string        `json:"quote"`
-	Candle   jsonCandle    `json:"candle"`
+	Exchange string     `json:"exchange"`
+	Base     string     `json:"base"`
+	Quote    string     `json:"quote"`
+	Candle   jsonCandle `json:"candle"`
 }
 
-type jsonFormat struct {
+type JSONOutput struct {
 	Output io.Writer
 }
 
 // NewJSON displays the market as json format
-func NewJSON() Formatter {
-	return &jsonFormat{
+func NewJSONOutput() *JSONOutput {
+	return &JSONOutput{
 		Output: os.Stdout,
 	}
 }
 
-func (j *jsonFormat) Open() {}
+func (j *JSONOutput) Open() {}
 
 func convertCandles(candle exchange.Candle) (newCandles jsonCandle) {
 	return jsonCandle{
@@ -49,7 +49,7 @@ func convertCandles(candle exchange.Candle) (newCandles jsonCandle) {
 	}
 }
 
-func (j *jsonFormat) Show(info exchange.MarketDisplayInfo) {
+func (j *JSONOutput) Show(info exchange.MarketDisplayInfo) {
 	market := info.Market
 
 	b, _ := json.Marshal(&jsonChart{
@@ -62,4 +62,4 @@ func (j *jsonFormat) Show(info exchange.MarketDisplayInfo) {
 	fmt.Fprintf(j.Output, "%s\n", string(b))
 }
 
-func (j *jsonFormat) Close() {}
+func (j *JSONOutput) Close() {}

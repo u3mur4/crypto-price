@@ -1,12 +1,10 @@
-package observer
-
-import "github.com/u3mur4/crypto-price/exchange"
+package exchange
 
 type multiFormat struct {
 	formatters []Formatter
 }
 
-func NewMulti(f ...Formatter) Formatter {
+func newMulti(f ...Formatter) Formatter {
 	return &multiFormat{
 		formatters: f,
 	}
@@ -18,7 +16,7 @@ func (m multiFormat) Open() {
 	}
 }
 
-func (m multiFormat) Show(info exchange.MarketDisplayInfo) {
+func (m multiFormat) Show(info MarketDisplayInfo) {
 	for _, formatter := range m.formatters {
 		formatter.Show(info)
 	}

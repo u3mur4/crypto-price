@@ -8,23 +8,23 @@ import (
 	"github.com/u3mur4/crypto-price/exchange"
 )
 
-type templateFormat struct {
+type TemplateOutput struct {
 	Output   io.Writer
 	Template *template.Template
 }
 
 // NewTemplate displays the market as the specified golang template format
-func NewTemplate(format string) Formatter {
-	return templateFormat{
+func NewTemplateOutput(format string) TemplateOutput {
+	return TemplateOutput{
 		Output:   os.Stdout,
 		Template: template.Must(template.New("TemplateFormatter").Parse(format)),
 	}
 }
 
-func (t templateFormat) Open() {}
+func (t TemplateOutput) Open() {}
 
-func (t templateFormat) Show(info exchange.MarketDisplayInfo) {
+func (t TemplateOutput) Show(info exchange.MarketDisplayInfo) {
 	t.Template.Execute(t.Output, info)
 }
 
-func (t templateFormat) Close() {}
+func (t TemplateOutput) Close() {}

@@ -17,22 +17,22 @@ type PolybarConfig struct {
 	ShortOnlyOnWeekend bool
 }
 
-type polybarFormat struct {
+type PolybarOutput struct {
 	markets   map[string]exchange.MarketDisplayInfo
 	showPrice map[string]bool
 	config    PolybarConfig
 	keys      []string
 }
 
-func NewPolybar(config PolybarConfig) Formatter {
-	return &polybarFormat{
+func NewPolybar(config PolybarConfig) *PolybarOutput {
+	return &PolybarOutput{
 		markets:   make(map[string]exchange.MarketDisplayInfo),
 		config:    config,
 		showPrice: make(map[string]bool),
 	}
 }
 
-func (p *polybarFormat) Open() {
+func (p *PolybarOutput) Open() {
 	process := func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "POST":
@@ -54,7 +54,7 @@ func (p *polybarFormat) Open() {
 	go http.ListenAndServe(":60253", nil)
 }
 
-func (p *polybarFormat) formatQuote(market exchange.Market) string {
+func (p *PolybarOutput) formatQuote(market exchange.Market) string {
 	if strings.EqualFold(market.Quote, "btc") {
 		// return "Ƀ"
 		return ""
@@ -66,7 +66,7 @@ func (p *polybarFormat) formatQuote(market exchange.Market) string {
 	return ""
 }
 
-func (i *polybarFormat) formatPrice(market exchange.Market) string {
+func (i *PolybarOutput) formatPrice(market exchange.Market) string {
 	if strings.EqualFold(market.Quote, "btc") {
 		if market.Candle.Close < 1 {
 			return fmt.Sprintf("%.8f", market.Candle.Close)
@@ -76,7 +76,7 @@ func (i *polybarFormat) formatPrice(market exchange.Market) string {
 	return fmt.Sprintf("%.0f", market.Candle.Close)
 }
 
-func (i *polybarFormat) openTradingViewCmd(market exchange.Market) string {
+func (i *PolybarOutput) openTradingViewCmd(market exchange.Market) string {
 	b := strings.Builder{}
 
 	b.WriteString("chromium --newtab ")
@@ -90,7 +90,7 @@ func (i *polybarFormat) openTradingViewCmd(market exchange.Market) string {
 	return "%{A1:" + strings.Replace(b.String(), ":", "\\:", -1) + ":}"
 }
 
-func (i *polybarFormat) tooglePrice(market, data string) string {
+func (i *PolybarOutput) tooglePrice(market, data string) string {
 	b := strings.Builder{}
 	b.WriteString("%{A1:")
 	b.WriteString("curl -d 'market=" + market + "' -X POST http\\://localhost\\:60253")
@@ -100,7 +100,7 @@ func (i *polybarFormat) tooglePrice(market, data string) string {
 	return b.String()
 }
 
-func (i *polybarFormat) Show(info exchange.MarketDisplayInfo) {
+func (i *PolybarOutput) Show(info exchange.MarketDisplayInfo) {
 	market := info.Market
 
 	key := market.Exchange + market.Base + market.Quote
@@ -164,5 +164,5 @@ func (i *polybarFormat) Show(info exchange.MarketDisplayInfo) {
 	// logrus.Debug(builder.String())
 }
 
-func (p polybarFormat) Close() {
+func (p PolybarOutput) Close() {
 }

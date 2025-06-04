@@ -9,20 +9,20 @@ import (
 )
 
 // NewServer displays the market as json format
-func NewServer() Formatter {
-	return &serverFormatter{
-		markets:        make(map[string]exchange.MarketDisplayInfo),
-		jsonFormatter: NewJSON().(*jsonFormat),
+func NewMarketAPIServer() *MarketAPIServer {
+	return &MarketAPIServer{
+		markets:       make(map[string]exchange.MarketDisplayInfo),
+		jsonOutput: NewJSONOutput(),
 	}
 }
 
-type serverFormatter struct {
-	markets        map[string]exchange.MarketDisplayInfo
-	jsonFormatter *jsonFormat
+type MarketAPIServer struct {
+	markets       map[string]exchange.MarketDisplayInfo
+	jsonOutput *JSONOutput
 }
 
-func (j *serverFormatter) Open() {
-	j.jsonFormatter.Open()
+func (j *MarketAPIServer) Open() {
+	j.jsonOutput.Open()
 
 	rtr := mux.NewRouter()
 	rtr.HandleFunc("/{key:.*}", j.handler).Methods("GET")
@@ -31,26 +31,26 @@ func (j *serverFormatter) Open() {
 	go http.ListenAndServe(":23232", nil)
 
 }
-func (j *serverFormatter) handler(w http.ResponseWriter, r *http.Request) {
+func (j *MarketAPIServer) handler(w http.ResponseWriter, r *http.Request) {
 	key := strings.ToLower(r.URL.Path[1:])
 	// fmt.Println("New request for " + key)
 	if chart, ok := j.markets[key]; ok {
 		w.Header().Set("Content-Type", "application/json")
-		j.jsonFormatter.Output = w
-		j.jsonFormatter.Show(chart)
+		j.jsonOutput.Output = w
+		j.jsonOutput.Show(chart)
 		// fmt.Printf("Response:\n%s", string(b))
 	} else {
 		w.WriteHeader(404)
 	}
 }
 
-func (j *serverFormatter) Show(info exchange.MarketDisplayInfo) {
+func (j *MarketAPIServer) Show(info exchange.MarketDisplayInfo) {
 	market := info.Market
 	key := market.Exchange + ":" + market.Base + "-" + market.Quote
 	key = strings.ToLower(key)
 	j.markets[key] = info
 }
 
-func (j *serverFormatter) Close() {
-	j.jsonFormatter.Close()
+func (j *MarketAPIServer) Close() {
+	j.jsonOutput.Close()
 }

@@ -26,15 +26,15 @@ type alert struct {
 	Cmd         string    `json:"cmd"`
 }
 
-type alertFormat struct {
+type MarketAlerter struct {
 	alerts []*alert
 }
 
-func NewAlert() Formatter {
-	return &alertFormat{}
+func NewMarketAlerter() *MarketAlerter {
+	return &MarketAlerter{}
 }
 
-func (j *alertFormat) watchAlert() {
+func (j *MarketAlerter) watchAlert() {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal(err)
@@ -72,12 +72,12 @@ func (j *alertFormat) watchAlert() {
 	<-done
 }
 
-func (j *alertFormat) alertPath() string {
+func (j *MarketAlerter) alertPath() string {
 	home, _ := os.UserHomeDir()
 	return path.Join(home, ".crypto-alerts.json")
 }
 
-func (j *alertFormat) parseAlerts() (alerts []*alert, err error) {
+func (j *MarketAlerter) parseAlerts() (alerts []*alert, err error) {
 	jsonFile, err := os.Open(j.alertPath())
 	if err != nil {
 		return nil, err
@@ -98,13 +98,13 @@ func (j *alertFormat) parseAlerts() (alerts []*alert, err error) {
 	return alerts, nil
 }
 
-func (j *alertFormat) saveAlerts(alerts []*alert) {
+func (j *MarketAlerter) saveAlerts(alerts []*alert) {
 	byteValue, _ := json.MarshalIndent(&j.alerts, "", "    ")
 	ioutil.WriteFile(j.alertPath(), byteValue, 0644)
 	return
 }
 
-func (j *alertFormat) Open() {
+func (j *MarketAlerter) Open() {
 	alerts, err := j.parseAlerts()
 	if err != nil {
 		log.Println("error in open whil parsing alter config file:", err)
@@ -113,7 +113,7 @@ func (j *alertFormat) Open() {
 	go j.watchAlert()
 }
 
-func (j *alertFormat) triggerAlert(alert *alert) {
+func (j *MarketAlerter) triggerAlert(alert *alert) {
 	args, err := shellwords.Parse(alert.Cmd)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "cannot parse alert cmd(%s): %v\n", alert.Cmd, err)
@@ -132,7 +132,7 @@ func (j *alertFormat) triggerAlert(alert *alert) {
 	cmd.Process.Release()
 }
 
-func (j *alertFormat) Show(info exchange.MarketDisplayInfo) {
+func (j *MarketAlerter) Show(info exchange.MarketDisplayInfo) {
 	market := info.Market
 
 	id := market.Exchange + ":" + market.Base + "-" + market.Quote
@@ -168,6 +168,6 @@ func (j *alertFormat) Show(info exchange.MarketDisplayInfo) {
 	}
 }
 
-func (j *alertFormat) Close() {
+func (j *MarketAlerter) Close() {
 	j.saveAlerts(j.alerts)
 }

@@ -18,7 +18,7 @@ type WaybarConfig struct {
 	ShortOnlyOnWeekend bool
 }
 
-type WaybarFormat struct {
+type WaybarOutput struct {
 	markets   map[string]exchange.MarketDisplayInfo
 	showPrice map[string]bool
 	showColor map[string]bool
@@ -26,8 +26,8 @@ type WaybarFormat struct {
 	keys      []string
 }
 
-func NewWaybar(config WaybarConfig) Formatter {
-	return &WaybarFormat{
+func NewWaybarOutput(config WaybarConfig) *WaybarOutput {
+	return &WaybarOutput{
 		markets:   make(map[string]exchange.MarketDisplayInfo),
 		config:    config,
 		showPrice: make(map[string]bool),
@@ -35,7 +35,7 @@ func NewWaybar(config WaybarConfig) Formatter {
 	}
 }
 
-func (p *WaybarFormat) Open() {
+func (p *WaybarOutput) Open() {
 	process := func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "POST":
@@ -69,7 +69,7 @@ func (p *WaybarFormat) Open() {
 	go http.ListenAndServe(":60253", nil)
 }
 
-func (p *WaybarFormat) formatQuote(market exchange.Market) string {
+func (p *WaybarOutput) formatQuote(market exchange.Market) string {
 	if strings.EqualFold(market.Quote, "btc") {
 		// return "Ƀ"
 		return ""
@@ -81,7 +81,7 @@ func (p *WaybarFormat) formatQuote(market exchange.Market) string {
 	return ""
 }
 
-func (i *WaybarFormat) formatPrice(market exchange.Market) string {
+func (i *WaybarOutput) formatPrice(market exchange.Market) string {
 	if strings.EqualFold(market.Quote, "btc") {
 		if market.Candle.Close < 1 {
 			return fmt.Sprintf("%.8f", market.Candle.Close)
@@ -91,7 +91,7 @@ func (i *WaybarFormat) formatPrice(market exchange.Market) string {
 	return fmt.Sprintf("%.3f", market.Candle.Close)
 }
 
-func (i *WaybarFormat) openTradingViewCmd(market exchange.Market) string {
+func (i *WaybarOutput) openTradingViewCmd(market exchange.Market) string {
 	b := strings.Builder{}
 
 	b.WriteString("chromium --newtab ")
@@ -105,7 +105,7 @@ func (i *WaybarFormat) openTradingViewCmd(market exchange.Market) string {
 	return "%{A1:" + strings.Replace(b.String(), ":", "\\:", -1) + ":}"
 }
 
-func (i *WaybarFormat) tooglePrice(market, data string) string {
+func (i *WaybarOutput) tooglePrice(market, data string) string {
 	b := strings.Builder{}
 	b.WriteString("%{A1:")
 	b.WriteString("curl -d 'market=" + market + "' -X POST http\\://localhost\\:60253")
@@ -115,7 +115,7 @@ func (i *WaybarFormat) tooglePrice(market, data string) string {
 	return b.String()
 }
 
-func (i *WaybarFormat) Show(info exchange.MarketDisplayInfo) {
+func (i *WaybarOutput) Show(info exchange.MarketDisplayInfo) {
 	market := info.Market
 	key := market.Exchange + market.Base + market.Quote
 
@@ -183,5 +183,5 @@ func (i *WaybarFormat) Show(info exchange.MarketDisplayInfo) {
 	// logrus.Debug(builder.String())
 }
 
-func (p WaybarFormat) Close() {
+func (p WaybarOutput) Close() {
 }
