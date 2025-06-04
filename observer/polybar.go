@@ -24,7 +24,7 @@ type PolybarOutput struct {
 	keys      []string
 }
 
-func NewPolybar(config PolybarConfig) *PolybarOutput {
+func NewPolybarOutput(config PolybarConfig) *PolybarOutput {
 	return &PolybarOutput{
 		markets:   make(map[string]exchange.MarketDisplayInfo),
 		config:    config,
