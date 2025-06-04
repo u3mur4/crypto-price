@@ -56,18 +56,27 @@ func (waybar *WaybarOutput) startConfigServer() {
 				waybar.log.WithField("market", market).Error("Market not found")
 				return
 			}
+			
+			action := r.FormValue("action")
 
-			switch r.URL.Path {
-			case "/toggle_price":
+			switch action {
+			case "toggle_price":
 				if showPrice, ok := waybar.showPrice[market]; ok {
-					waybar.log.WithField("market", market).WithField("show", !showPrice).Info("Toggled price visibility")
 					waybar.showPrice[market] = !showPrice
+				} else {
+					waybar.showPrice[market] = false
 				}
-			case "/toggle_color":
+				waybar.log.WithField("market", market).WithField("show", waybar.showPrice[market]).Info("Toggled price visibility")
+			case "toggle_color":
 				if showColor, ok := waybar.showColor[market]; ok {
-					waybar.log.WithField("market", market).WithField("show", !showColor).Info("Toggled color visibility")
 					waybar.showColor[market] = !showColor
+				} else {
+					waybar.showColor[market] = false
 				}
+
+				waybar.log.WithField("market", market).WithField("show", waybar.showColor[market]).Info("Toggled color visibility")
+			default:
+				waybar.log.WithField("action", action).Error("Unknown action")
 			}
 
 			// force to render immediately

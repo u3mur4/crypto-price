@@ -49,11 +49,26 @@ func (polybar *PolybarOutput) startConfigServer() {
 			}
 
 			market := r.FormValue("market")
-			if showPrice, ok := polybar.showPrice[market]; ok {
-				polybar.showPrice[market] = !showPrice
-				polybar.log.WithField("market", market).WithField("show", polybar.showPrice[market]).Info("Toggled price visibility")
-				polybar.Update(polybar.markets[market])
+			if _, ok := polybar.markets[market]; !ok {
+				polybar.log.WithField("market", market).Error("Market not found")
+				return
 			}
+
+			action := r.FormValue("action")
+			switch action {
+			case "toggle_price":
+				if showPrice, ok := polybar.showPrice[market]; ok {
+					polybar.showPrice[market] = !showPrice
+				} else {
+					polybar.showPrice[market] = true
+				}
+				polybar.log.WithField("market", market).WithField("show", polybar.showPrice[market]).Info("Toggled price visibility")
+			default:
+				polybar.log.WithField("action", action).Error("Unknown action")
+			}
+				
+			polybar.Update(polybar.markets[market])
+
 		}
 	}
 
