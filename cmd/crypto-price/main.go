@@ -40,7 +40,7 @@ var rootCmd = &cobra.Command{
 
 		aggregator := exchange.NewAggregator(exchange.Options{
 			ConvertToSatoshi: flags.Satoshi,
-		}, observer.NewPolybarOutput(observer.PolybarConfig{}))
+		})
 
 		observers := []exchange.Observer{}
 
