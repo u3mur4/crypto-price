@@ -2,6 +2,7 @@ package logger
 
 import (
 	"io"
+	"os"
 
 	"github.com/sirupsen/logrus"
 )
@@ -13,6 +14,9 @@ func Setup(level string, disable bool) {
 	if disable {
 		log.SetOutput(io.Discard)
 		return
+	} else {
+		f, _ := os.Create("/tmp/crypto-tracker.log")
+		log.SetOutput(f)
 	}
 
 	lvl, err := logrus.ParseLevel(level)
