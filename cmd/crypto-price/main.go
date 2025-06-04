@@ -8,29 +8,21 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/u3mur4/crypto-price/exchange"
+	"github.com/u3mur4/crypto-price/internal/logger"
 	"github.com/u3mur4/crypto-price/observer"
 )
 
 var flags = struct {
-	Format                    string
 	Template                  string
 	Satoshi                   bool
-	I3Bar                     bool
-	I3BarSort                 string
-	I3BarIcon                 bool
 	Polybar                   bool
-	PolybarSort               string
 	PolybarShortOnlyOnWeekend bool
 	Waybar                    bool
-	WaybarSort                string
 	WaybarShortOnlyOnWeekend  bool
-	I3LockPlugin              int
 	JSON                      bool
-	JSONLine                  bool
 	Server                    bool
 	Debug                     bool
 	Alert                     bool
-	// Throotle    float64
 }{}
 
 // rootCmd represents the base command when called without any subcommands
@@ -41,22 +33,16 @@ var rootCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if flags.Debug {
-			logrus.SetLevel(logrus.DebugLevel)
+			logger.Setup("debug", false)
 		} else {
-			logrus.SetLevel(logrus.ErrorLevel)
+			logger.Setup("error", false)
 		}
-
-		f, _ := os.Create("/tmp/crypto-tracker.log")
-		logrus.SetOutput(f)
-		// logrus.SetOutput(os.Stdout)
-		logrus.SetLevel(logrus.DebugLevel)
-		logrus.Info("Starting crypto price tracker...")
 
 		aggregator := exchange.NewAggregator(exchange.Options{
 			ConvertToSatoshi: flags.Satoshi,
 		}, observer.NewPolybarOutput(observer.PolybarConfig{}))
 
-		observers := []exchange.Formatter{}
+		observers := []exchange.Observer{}
 
 		if flags.JSON {
 			observers = append(observers, observer.NewJSONOutput())
@@ -70,20 +56,19 @@ var rootCmd = &cobra.Command{
 		if flags.Polybar {
 			observers = append(observers, observer.NewPolybarOutput(observer.PolybarConfig{
 				ShortOnlyOnWeekend: flags.PolybarShortOnlyOnWeekend,
-				Sort:               flags.PolybarSort,
-				Icon:               false,
 			}))
 		}
 		if flags.Waybar {
 			observers = append(observers, observer.NewWaybarOutput(observer.WaybarConfig{
 				ShortOnlyOnWeekend: flags.WaybarShortOnlyOnWeekend,
-				Sort:               flags.WaybarSort,
-				Icon:               false,
 			}))
 		}
 
 		if flags.Alert {
-			observers = append(observers, observer.NewMarketAlerter())
+			alerter, err := observer.NewMarketAlerter()
+			if err == nil {
+				observers = append(observers, alerter)
+			}
 		}
 
 		aggregator.AddObservers(observers...)
@@ -99,36 +84,23 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.Flags().BoolVar(&flags.Debug, "debug", true, "Enable debug log")
-	//
 	rootCmd.Flags().BoolVar(&flags.Satoshi, "satoshi", false, "convert btc market price to satoshi")
 
-	// format flags
 	rootCmd.Flags().StringVarP(&flags.Template, "template", "t", "", "golang template format")
 
 	rootCmd.Flags().BoolVar(&flags.Server, "server", false, "start a http server")
 
-	rootCmd.Flags().BoolVar(&flags.I3Bar, "i3bar", false, "i3bar format")
-	rootCmd.Flags().BoolVar(&flags.I3BarIcon, "i3bar-icon", false, "Enable icons. (https://github.com/AllienWorks/cryptocoins)")
-	rootCmd.Flags().StringVar(&flags.I3BarSort, "i3bar-sort", "keep", "sort markets by change. values: keep, inc, dec")
-
 	rootCmd.Flags().BoolVar(&flags.Polybar, "polybar", false, "polybar format")
-	rootCmd.Flags().StringVar(&flags.PolybarSort, "polybar-sort", "keep", "sort markets by change. values: keep, inc, dec")
 	rootCmd.Flags().BoolVar(&flags.PolybarShortOnlyOnWeekend, "polybar-weekend-short", false, "short display on weekend")
 
 	rootCmd.Flags().BoolVar(&flags.Waybar, "waybar", false, "waybar format")
-	rootCmd.Flags().StringVar(&flags.WaybarSort, "waybar-sort", "keep", "sort markets by change. values: keep, inc, dec")
 	rootCmd.Flags().BoolVar(&flags.WaybarShortOnlyOnWeekend, "waybar-weekend-short", false, "short display on weekend")
 
-	rootCmd.Flags().IntVar(&flags.I3LockPlugin, "i3lock-plugin", 0, "generate images for i3lock plugin")
-
 	rootCmd.Flags().BoolVar(&flags.JSON, "json", false, "json format")
-	rootCmd.Flags().BoolVar(&flags.JSONLine, "jsonl", false, "json line format")
 	rootCmd.Flags().BoolVar(&flags.Alert, "alert", false, "enable alert")
 }
 
 func main() {
-	// rootCmd.Version = fmt.Sprintf("%v, commit %v, built at %v", version, commit, date)
-
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
