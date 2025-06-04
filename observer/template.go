@@ -13,7 +13,6 @@ type TemplateOutput struct {
 	Template *template.Template
 }
 
-// NewTemplate displays the market as the specified golang template format
 func NewTemplateOutput(format string) TemplateOutput {
 	return TemplateOutput{
 		Output:   os.Stdout,
@@ -21,10 +20,6 @@ func NewTemplateOutput(format string) TemplateOutput {
 	}
 }
 
-func (t TemplateOutput) Open() {}
-
 func (t TemplateOutput) Show(info exchange.MarketDisplayInfo) {
-	t.Template.Execute(t.Output, info)
+	t.Template.Execute(t.Output, info.Market)
 }
-
-func (t TemplateOutput) Close() {}
