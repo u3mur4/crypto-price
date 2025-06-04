@@ -20,6 +20,6 @@ func NewTemplateOutput(format string) TemplateOutput {
 	}
 }
 
-func (t TemplateOutput) Show(info exchange.MarketDisplayInfo) {
+func (t TemplateOutput) Update(info exchange.MarketDisplayInfo) {
 	t.Template.Execute(t.Output, info.Market)
 }
