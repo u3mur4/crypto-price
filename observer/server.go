@@ -5,52 +5,46 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 	"github.com/u3mur4/crypto-price/exchange"
+	"github.com/u3mur4/crypto-price/internal/logger"
 )
 
-// NewServer displays the market as json format
-func NewMarketAPIServer() *MarketAPIServer {
-	return &MarketAPIServer{
-		markets:       make(map[string]exchange.MarketDisplayInfo),
-		jsonOutput: NewJSONOutput(),
-	}
-}
-
 type MarketAPIServer struct {
-	markets       map[string]exchange.MarketDisplayInfo
+	markets    map[string]exchange.MarketDisplayInfo
 	jsonOutput *JSONOutput
+	log        *logrus.Entry
 }
 
-func (j *MarketAPIServer) Open() {
-	j.jsonOutput.Open()
+func NewMarketAPIServer() *MarketAPIServer {
+	server := &MarketAPIServer{
+		markets:    make(map[string]exchange.MarketDisplayInfo),
+		jsonOutput: NewJSONOutput(),
+		log:        logger.Log().WithField("observer", "market_api_server"),
+	}
 
 	rtr := mux.NewRouter()
-	rtr.HandleFunc("/{key:.*}", j.handler).Methods("GET")
+	rtr.HandleFunc("/{key:.*}", server.handler).Methods("GET")
 
 	http.Handle("/", rtr)
 	go http.ListenAndServe(":23232", nil)
 
+	return server
 }
+
 func (j *MarketAPIServer) handler(w http.ResponseWriter, r *http.Request) {
 	key := strings.ToLower(r.URL.Path[1:])
-	// fmt.Println("New request for " + key)
 	if chart, ok := j.markets[key]; ok {
 		w.Header().Set("Content-Type", "application/json")
 		j.jsonOutput.Output = w
-		j.jsonOutput.Show(chart)
-		// fmt.Printf("Response:\n%s", string(b))
+		j.jsonOutput.Update(chart)
+		j.log.WithField("key", key).Debug("GET request for market info")
 	} else {
+		j.log.WithField("key", key).Warn("Market not found")
 		w.WriteHeader(404)
 	}
 }
 
-func (j *MarketAPIServer) Show(info exchange.MarketDisplayInfo) {
-	market := info.Market
-	key := market.Exchange + ":" + market.Base + "-" + market.Quote
-	key = strings.ToLower(key)
-	j.markets[key] = info
-}
-
-func (j *MarketAPIServer) Close() {
-	j.jsonOutput.Close()
+func (j *MarketAPIServer) Update(info exchange.MarketDisplayInfo) {
+	j.markets[info.Market.Key()] = info
 }
