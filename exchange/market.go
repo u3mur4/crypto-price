@@ -1,6 +1,9 @@
 package exchange
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type Candle struct {
 	Open  float64
@@ -41,6 +44,10 @@ type Market struct {
 	Quote      string
 	Candle     Candle
 	LastUpdate time.Time
+}
+
+func (m *Market) Key() string {
+	return strings.ToLower(m.Exchange + ":" + m.Base + "-" + m.Quote)
 }
 
 type MarketDisplayInfo struct {
