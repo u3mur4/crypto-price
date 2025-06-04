@@ -75,8 +75,8 @@ func (waybar *WaybarOutput) startConfigServer() {
 		}
 	}
 
-	http.HandleFunc("/", process)
-	port := ":60253"
+	http.HandleFunc("/waybar", process)
+	port := ":60254"
 	waybar.log.WithField("port", port).Info("Starting config server")
 	err := http.ListenAndServe(port, nil)
 	if err != nil {

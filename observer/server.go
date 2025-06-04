@@ -26,7 +26,7 @@ func NewMarketAPIServer() *MarketAPIServer {
 	rtr := mux.NewRouter()
 	rtr.HandleFunc("/{key:.*}", server.handler).Methods("GET")
 
-	http.Handle("/", rtr)
+	http.Handle("/api", rtr)
 	go http.ListenAndServe(":23232", nil)
 
 	return server

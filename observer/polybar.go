@@ -57,7 +57,7 @@ func (polybar *PolybarOutput) startConfigServer() {
 		}
 	}
 
-	http.HandleFunc("/", process)
+	http.HandleFunc("/polybar", process)
 	port := ":60253"
 	polybar.log.WithField("port", port).Info("Starting config server")
 	err := http.ListenAndServe(port, nil)
