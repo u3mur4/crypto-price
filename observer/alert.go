@@ -3,8 +3,6 @@ package observer
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -13,13 +11,15 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/mattn/go-shellwords"
+	"github.com/sirupsen/logrus"
 	"github.com/u3mur4/crypto-price/exchange"
+	"github.com/u3mur4/crypto-price/internal/logger"
 )
 
-type alert struct {
+type alertDefinition struct {
 	ID          string    `json:"id"`
 	Enabled     bool      `json:"enabled"`
-	GracePeriod string    `json:"grace_period"`
+	GracePeriod string    `json:"grace_period"` // Duration string, e.g. "5m" for 5 minutes which is the time to wait before triggering the alert again
 	LastAlert   time.Time `json:"-"`
 	Condition   string    `json:"condition"`
 	Value       []float64 `json:"value"`
@@ -27,17 +27,29 @@ type alert struct {
 }
 
 type MarketAlerter struct {
-	alerts []*alert
+	alerts []*alertDefinition
+	log    *logrus.Entry
 }
 
-func NewMarketAlerter() *MarketAlerter {
-	return &MarketAlerter{}
+func NewMarketAlerter() (*MarketAlerter, error) {
+	alerter := &MarketAlerter{
+		alerts: make([]*alertDefinition, 0),
+		log:    logger.Log().WithField("observer", "alerter"),
+	}
+
+	err := alerter.load()
+	if err != nil {
+		return nil, err
+	}
+
+	go alerter.watchConfigFile()
+	return alerter, nil
 }
 
-func (j *MarketAlerter) watchAlert() {
+func (j *MarketAlerter) watchConfigFile() {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Fatal(err)
+		j.log.WithError(err).Error("failed to create file watcher, not watching for changes")
 	}
 	defer watcher.Close()
 
@@ -50,81 +62,61 @@ func (j *MarketAlerter) watchAlert() {
 					return
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					alerts, err := j.parseAlerts()
-					if err == nil {
-						j.alerts = alerts
-					}
+					// File modified, reload alerts
+					j.load()
 				}
 
 			case err, ok := <-watcher.Errors:
 				if !ok {
 					return
 				}
-				log.Println("error:", err)
+				j.log.WithError(err).Error("error watching alerts config file")
 			}
 		}
 	}()
 
-	err = watcher.Add(j.alertPath())
+	err = watcher.Add(j.configPath())
 	if err != nil {
-		log.Fatal(err)
+		j.log.WithError(err).Error("failed to add file watcher for alerts config file")
 	}
 	<-done
 }
 
-func (j *MarketAlerter) alertPath() string {
-	home, _ := os.UserHomeDir()
-	return path.Join(home, ".crypto-alerts.json")
+func (j *MarketAlerter) configPath() string {
+	userConfigDir, _ := os.UserConfigDir()
+	alterConfigDir := path.Join(userConfigDir, "crypto-alerts")
+	os.MkdirAll(alterConfigDir, 0755)
+	return path.Join(alterConfigDir, "alerts.json")
 }
 
-func (j *MarketAlerter) parseAlerts() (alerts []*alert, err error) {
-	jsonFile, err := os.Open(j.alertPath())
+func (j *MarketAlerter) load() error {
+	byteValue, err := os.ReadFile(j.configPath())
 	if err != nil {
-		return nil, err
+		j.log.WithError(err).Error("failed to read alerts config file")
+		return err
 	}
-	defer jsonFile.Close()
-
-	byteValue, err := ioutil.ReadAll(jsonFile)
+	err = json.Unmarshal(byteValue, &j.alerts)
 	if err != nil {
-		return nil, err
-	}
-	print(string(byteValue))
-	err = json.Unmarshal(byteValue, &alerts)
-	if err != nil {
-		return nil, err
+		j.log.WithError(err).Error("failed to unmarshal alerts config file")
+		return err
 	}
 
-	fmt.Printf("found %d alerts\n", len(alerts))
-	return alerts, nil
+	j.log.WithField("count", len(j.alerts)).Info("loaded alerts")
+	return nil
 }
 
-func (j *MarketAlerter) saveAlerts(alerts []*alert) {
-	byteValue, _ := json.MarshalIndent(&j.alerts, "", "    ")
-	ioutil.WriteFile(j.alertPath(), byteValue, 0644)
-	return
-}
-
-func (j *MarketAlerter) Open() {
-	alerts, err := j.parseAlerts()
-	if err != nil {
-		log.Println("error in open whil parsing alter config file:", err)
-	}
-	j.alerts = alerts
-	go j.watchAlert()
-}
-
-func (j *MarketAlerter) triggerAlert(alert *alert) {
+func (j *MarketAlerter) triggerAlertCmd(alert *alertDefinition) {
 	args, err := shellwords.Parse(alert.Cmd)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "cannot parse alert cmd(%s): %v\n", alert.Cmd, err)
+		j.log.WithError(err).Errorf("cannot parse alert cmd(%s)", alert.Cmd)
 		return
 	}
-	fmt.Fprintf(os.Stderr, "running alert cmd: %s\n", alert.Cmd)
+	j.log.WithField("cmd", alert.Cmd).Info("triggering alert command")
 
 	cmd := exec.Command(args[0], args[1:]...)
 	err = cmd.Start()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "cannot run alert cmd(%s): %v\n", alert.Cmd, err)
+		j.log.WithError(err).Error("cannot run alert cmd")
 		return
 	}
 
@@ -132,10 +124,10 @@ func (j *MarketAlerter) triggerAlert(alert *alert) {
 	cmd.Process.Release()
 }
 
-func (j *MarketAlerter) Show(info exchange.MarketDisplayInfo) {
+func (j *MarketAlerter) Update(info exchange.MarketDisplayInfo) {
 	market := info.Market
-
 	id := market.Exchange + ":" + market.Base + "-" + market.Quote
+
 	for _, alert := range j.alerts {
 		if strings.EqualFold(id, alert.ID) && alert.Enabled {
 			gracePeriod, err := time.ParseDuration(alert.GracePeriod)
@@ -149,25 +141,21 @@ func (j *MarketAlerter) Show(info exchange.MarketDisplayInfo) {
 			switch alert.Condition {
 			case "gt_percent":
 				if market.Candle.Percent() > alert.Value[0] {
-					j.triggerAlert(alert)
+					j.triggerAlertCmd(alert)
 				}
 			case "lt_percent":
 				if market.Candle.Percent() < alert.Value[0] {
-					j.triggerAlert(alert)
+					j.triggerAlertCmd(alert)
 				}
 			case "gt_price":
 				if market.Candle.Close > alert.Value[0] {
-					j.triggerAlert(alert)
+					j.triggerAlertCmd(alert)
 				}
 			case "lt_price":
 				if market.Candle.Close < alert.Value[0] {
-					j.triggerAlert(alert)
+					j.triggerAlertCmd(alert)
 				}
 			}
 		}
 	}
-}
-
-func (j *MarketAlerter) Close() {
-	j.saveAlerts(j.alerts)
 }
