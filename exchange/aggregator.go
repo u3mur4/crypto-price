@@ -134,6 +134,10 @@ func (c *Aggregator) startAllExchange() error {
 	for {
 		select {
 		case <-ticker.C:
+			// we didn't have any market update yet.
+			if info.Market.Base == "" {
+				continue
+			}
 			// we don't have to check network connection if we have recently received any data
 			if time.Since(info.Market.LastUpdate) <= time.Second*7 {
 				info.LastConfirmedConnectionTime = time.Now()
